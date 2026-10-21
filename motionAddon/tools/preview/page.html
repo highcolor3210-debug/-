@@ -129,19 +129,18 @@ function showMeshes(group, on) {
 
 function setVisibility(fp, holding, joints, slim) {
   // 三人称：スキンは頭・体（関節を使うときは腕・脚を隠す）、関節つきの腕・脚を出す
-  // 一人称：何も持っていないときだけ右腕。持っているときは持ち物だけ
+  // 一人称：何も持っていないときだけ右腕（バニラの腕）。持っているときは持ち物だけ
   for (const [name, g] of Object.entries(skel.skin)) {
     let on = !fp && !(joints && SKIN_LIMBS.has(name));
-    if (fp && !joints && (name === "rightarm" || name === "rightsleeve")) on = !holding;
+    // 一人称の腕はバニラのまま（何も持っていないときだけ出る）
+    if (fp && (name === "rightarm" || name === "rightsleeve")) on = !holding;
     showMeshes(g, on);
   }
   // 関節つきの腕・脚は、ゲームと同じく v.motion_slim で太い／細いを選ぶ
   for (const key of ["limbs", "limbs_slim"]) {
     const use = (key === "limbs_slim") === !!slim;
     for (const [name, g] of Object.entries(skel[key])) {
-      let on = use && joints && !fp;
-      if (fp) on = use && joints && !holding && (name === "rightarm" || name === "rightforearm");
-      showMeshes(g, on);
+      showMeshes(g, use && joints && !fp);
     }
   }
   scene.getObjectByName("sword").visible = holding;

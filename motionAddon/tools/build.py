@@ -6,9 +6,14 @@
   render_controllers/motion.player.render_controllers.json
       プレイヤーの描き方。バニラの腕・脚を隠して、関節つきの腕・脚を出す
   animations/motion.player.animation.json      歩き・走り・ジャンプ・着地・剣の振り
+  animation_controllers/motion.player.animation_controllers.json
+      バニラのプレイヤーの root コントローラーに、このアドオンのアニメーションを足したもの
   entity/player.entity.json                    バニラ（tools/vanilla/）に上のものを足したもの
 
 しくみ
+- アニメーションはバニラの root コントローラー（の写し）の中で動かす。一人称では root の中のアニメーションしか
+  効かないようで、コントローラーの外（scripts.animate）に置いた一人称の動きはゲームで反映されなかった。
+- 一人称の腕はバニラの腕のまま（関節つきの腕は三人称だけ）。別のモデルは一人称では動かなかったため。
 - 関節つきの腕・脚は、マントと同じやり方（別のモデルを同じ骨の名前で重ねて、別の描画で出す）。
   上腕・ふとももは バニラと同じ骨の名前なので、バニラのアニメーションもそのまま効く。
   前腕（forearm）とすね（shin）だけがこのアドオンの骨。
@@ -251,6 +256,67 @@ SLASH_FP = {
 }
 
 
+# 素手のパンチ（三人称）。ひじを引いて構え、まっすぐ前へ突き出して戻す
+PUNCH_TP = {
+    #       上腕 [x, y, z]      前腕   体 [x, y]   左腕 x  左前腕
+    0.00: ([-18, 0, 0], -10, [0, 0], 0, 0),
+    0.15: ([-20, 10, 8], -95, [0, 12], -40, -90),
+    0.40: ([-88, -8, 2], -5, [4, -18], -50, -100),
+    0.60: ([-80, -6, 2], -10, [3, -14], -50, -100),
+    1.00: ([-18, 0, 0], -10, [0, 0], 0, 0),
+}
+# 素手のパンチ（一人称）。バニラの一人称の腕の位置に足す量（位置 -x＝左、+y＝上、+z＝奥）
+PUNCH_FP = {
+    0.00: ([0, 0, 0], [0, 0, 0]),
+    0.12: ([1, -1, -2], [5, 0, 0]),
+    0.38: ([-6, 3, 7], [-10, 10, -5]),
+    0.55: ([-5, 2.5, 6], [-8, 8, -4]),
+    1.00: ([0, 0, 0], [0, 0, 0]),
+}
+
+
+def punch_tp_animation():
+    return {
+        "loop": True,
+        "animation_length": 1.0,
+        "anim_time_update": "variable.attack_time",
+        "override_previous_animation": True,  # 右腕はバニラの攻撃の振りを置き換える
+        "bones": {
+            "rightarm": {"rotation": keys({t: k[0] for t, k in PUNCH_TP.items()})},
+            "rightforearm": {"rotation": keys({t: k[1] for t, k in PUNCH_TP.items()}, xyz)},
+        },
+    }
+
+
+def punch_tp_body_animation():
+    return {
+        "loop": True,
+        "animation_length": 1.0,
+        "anim_time_update": "variable.attack_time",
+        "bones": {
+            "body": {"rotation": keys({t: k[2] for t, k in PUNCH_TP.items()}, lambda v: [v[0], v[1], 0.0])},
+            "leftarm": {"rotation": keys({t: k[3] for t, k in PUNCH_TP.items()}, lambda v: [v, 0.0, -8.0 if v else 0.0])},
+            "leftforearm": {"rotation": keys({t: k[4] for t, k in PUNCH_TP.items()}, xyz)},
+        },
+    }
+
+
+def punch_fp_animation():
+    add = lambda a, b: [round(x + y, 3) for x, y in zip(a, b)]
+    return {
+        "loop": True,
+        "animation_length": 1.0,
+        "anim_time_update": "variable.attack_time",
+        "override_previous_animation": True,  # 一人称の腕はバニラの振りを置き換える
+        "bones": {
+            "rightarm": {
+                "position": keys({t: add(FP_BASE_POS, k[0]) for t, k in PUNCH_FP.items()}),
+                "rotation": keys({t: add(FP_BASE_ROT, k[1]) for t, k in PUNCH_FP.items()}),
+            },
+        },
+    }
+
+
 def slash_tp_animation():
     return {
         "loop": True,
@@ -355,6 +421,9 @@ ANIMATIONS = {
     "animation.motion.sword_slash": slash_tp_animation,
     "animation.motion.sword_slash_body": slash_tp_body_animation,
     "animation.motion.first_person.sword_slash": slash_fp_animation,
+    "animation.motion.punch": punch_tp_animation,
+    "animation.motion.punch_body": punch_tp_body_animation,
+    "animation.motion.first_person.punch": punch_fp_animation,
 }
 
 # ---------------------------------------------------------------- プレイヤー
@@ -368,10 +437,15 @@ PRE_ANIMATION = [
     "v.motion_dt = math.clamp(q.delta_time, 0.0, 0.1);",
     "v.motion_follow = math.min(1.0, v.motion_dt * 8.0);",
     "v.motion_phase = q.modified_distance_moved * 38.17;",
-    "v.motion_move = math.clamp(q.modified_move_speed * 1.5, 0.0, 1.0);",
+    # modified_move_speed は腕・脚の振りの大きさ（歩き ≒ 0.86、走り ≒ 1.0）
+    "v.motion_move = math.clamp(q.modified_move_speed / 0.8, 0.0, 1.0);",
     "v.motion_ground = q.is_on_ground || q.is_riding || q.is_swimming || q.is_gliding;",
-    "v.motion_sprint = math.lerp(v.motion_sprint, (q.is_sprinting && v.motion_ground && !q.is_swimming) ? 1.0 : 0.0, v.motion_follow);",
+    # 走り：q.is_sprinting が効かない場合に備えて、振りの大きさが走りの値に近いときも走りとみなす
+    "v.motion_sprinting = (q.is_sprinting || q.modified_move_speed > 0.95) && v.motion_ground && !q.is_swimming;",
+    "v.motion_sprint = math.lerp(v.motion_sprint, v.motion_sprinting ? 1.0 : 0.0, v.motion_follow);",
+    "v.motion_sprint = math.abs(v.motion_sprint - (v.motion_sprinting ? 1.0 : 0.0)) < 0.01 ? (v.motion_sprinting ? 1.0 : 0.0) : v.motion_sprint;",
     "v.motion_air = math.lerp(v.motion_air, v.motion_ground ? 0.0 : 1.0, math.min(1.0, v.motion_dt * 10.0));",
+    "v.motion_air = math.abs(v.motion_air - (v.motion_ground ? 0.0 : 1.0)) < 0.01 ? (v.motion_ground ? 0.0 : 1.0) : v.motion_air;",
     "v.motion_vy = math.lerp(v.motion_vy, v.motion_ground ? 0.0 : math.clamp(q.vertical_speed / 10.0, -1.0, 1.0), v.motion_follow);",
     "v.motion_tuck = math.clamp(0.5 + v.motion_vy, 0.0, 1.0);",
     "v.motion_air_start = (!v.motion_ground && v.motion_was_ground) ? q.life_time : v.motion_air_start;",
@@ -379,12 +453,13 @@ PRE_ANIMATION = [
     "v.motion_was_ground = v.motion_ground;",
     "v.motion_land = math.clamp(1.0 - (q.life_time - v.motion_land_time) / 0.35, 0.0, 1.0);",
     "v.motion_sword = q.equipped_item_any_tag('slot.weapon.mainhand', 'minecraft:is_sword');",
+    "v.motion_empty_hand = q.get_equipped_item_name(0, 1) == '';",
 ]
 
-THIRD = ("!variable.is_first_person && !variable.is_paperdoll && !variable.map_face_icon && !q.is_sleeping && !q.is_riding"
-         " && variable.swim_amount <= 0.0 && !q.is_crawling && !q.is_gliding")
-FIRST = "variable.is_first_person && !variable.is_paperdoll"
+# root コントローラーの third_person / first_person の状態の中に入れるので、視点の条件は要らない
+THIRD = "!q.is_sleeping && !q.is_riding && variable.swim_amount <= 0.0 && !q.is_crawling && !q.is_gliding"
 SLASH = "v.motion_sword && variable.attack_time > 0.0"
+PUNCH = "v.motion_empty_hand && variable.attack_time > 0.0"
 ENTITY_ANIMATIONS = {
     "motion.cancel_vanilla_swing": "animation.motion.cancel_vanilla_swing",
     "motion.walk": "animation.motion.walk",
@@ -394,18 +469,36 @@ ENTITY_ANIMATIONS = {
     "motion.sword_slash_body": "animation.motion.sword_slash_body",
     "motion.first_person.move": "animation.motion.first_person.move",
     "motion.first_person.sword_slash": "animation.motion.first_person.sword_slash",
+    "motion.punch": "animation.motion.punch",
+    "motion.punch_body": "animation.motion.punch_body",
+    "motion.first_person.punch": "animation.motion.first_person.punch",
 }
 # 値が 0〜1 のものは「混ぜる強さ」（歩き↔走り↔止まる）
-ANIMATE = [
+THIRD_PERSON_STATE = [
     {"motion.cancel_vanilla_swing": THIRD},
     {"motion.walk": f"({THIRD}) ? v.motion_move * (1.0 - v.motion_sprint) * (1.0 - v.motion_air) : 0.0"},
     {"motion.run": f"({THIRD}) ? v.motion_move * v.motion_sprint * (1.0 - v.motion_air) : 0.0"},
     {"motion.air": f"{THIRD} && (v.motion_air > 0.01 || v.motion_land > 0.0)"},
     {"motion.sword_slash": f"{THIRD} && {SLASH}"},
     {"motion.sword_slash_body": f"{THIRD} && {SLASH}"},
-    {"motion.first_person.move": FIRST},
-    {"motion.first_person.sword_slash": f"{FIRST} && {SLASH}"},
+    {"motion.punch": f"{THIRD} && {PUNCH}"},
+    {"motion.punch_body": f"{THIRD} && {PUNCH}"},
 ]
+FIRST_PERSON_STATE = [
+    {"motion.first_person.move": "1.0"},
+    {"motion.first_person.sword_slash": SLASH},
+    {"motion.first_person.punch": PUNCH},
+]
+ROOT_ID = "controller.animation.motion.player.root"
+
+
+def build_animation_controllers():
+    vanilla = read_json(os.path.join(HERE, "vanilla", "player.animation_controllers.json"))["animation_controllers"]
+    root = json.loads(json.dumps(vanilla["controller.animation.player.root"]))
+    root["states"]["third_person"]["animations"] += THIRD_PERSON_STATE  # バニラのあとに足す
+    root["states"]["first_person"]["animations"] += FIRST_PERSON_STATE
+    return {"format_version": "1.10.0", "animation_controllers": {ROOT_ID: root}}
+
 
 LIMB_PARTS = ["rightArm", "rightSleeve", "leftArm", "leftSleeve", "rightLeg", "rightPants", "leftLeg", "leftPants"]
 
@@ -415,15 +508,6 @@ def build_render_controllers():
     tp = json.loads(json.dumps(vanilla["controller.render.player.third_person"]))
     # 関節を使うときは バニラの腕・脚（と重ね着）を出さない
     tp["part_visibility"] += [{p: "!v.motion_joints"} for p in LIMB_PARTS]
-    fp = json.loads(json.dumps(vanilla["controller.render.player.first_person"]))
-    fp_arm_cond = None
-    for entry in fp["part_visibility"]:
-        if "rightArm" in entry:
-            fp_arm_cond = entry["rightArm"]
-            entry["rightArm"] = f"({fp_arm_cond}) && !v.motion_joints"
-        elif "rightSleeve" in entry:
-            entry["rightSleeve"] = f"({entry['rightSleeve']}) && !v.motion_joints"
-    assert fp_arm_cond
     arrays = {"geometries": {"Array.motion_limbs": ["Geometry.motion_limbs", "Geometry.motion_limbs_slim"]}}
     limbs_tp = {
         "rebuild_animation_matrices": True,
@@ -433,21 +517,11 @@ def build_render_controllers():
         "textures": ["Texture.default"],
         "part_visibility": [{"*": "v.motion_joints"}],
     }
-    limbs_fp = {
-        "rebuild_animation_matrices": True,
-        "arrays": arrays,
-        "geometry": "Array.motion_limbs[v.motion_slim]",
-        "materials": [{"*": "Material.default"}],
-        "textures": ["Texture.default"],
-        "part_visibility": [{"*": False}, {"rightArm": f"v.motion_joints && ({fp_arm_cond})"}, {"rightForearm": f"v.motion_joints && ({fp_arm_cond})"}],
-    }
     return {
         "format_version": "1.10.0",
         "render_controllers": {
             "controller.render.motion.player.third_person": tp,
-            "controller.render.motion.player.first_person": fp,
             "controller.render.motion.limbs.third_person": limbs_tp,
-            "controller.render.motion.limbs.first_person": limbs_fp,
         },
     }
 
@@ -461,19 +535,17 @@ def build_entity():
     for k in ENTITY_ANIMATIONS:
         assert k not in desc["animations"], k
     desc["animations"].update(ENTITY_ANIMATIONS)
-    scripts["animate"] = scripts.get("animate", []) + ANIMATE  # バニラ（root）のあとに足す
+    assert desc["animations"]["root"] == "controller.animation.player.root"
+    desc["animations"]["root"] = ROOT_ID
     desc["geometry"]["motion_limbs"] = GEO_ID["wide"]
     desc["geometry"]["motion_limbs_slim"] = GEO_ID["slim"]
-    # バニラの一人称・三人称の描き方を、このアドオンのもの（腕・脚を隠す版）に差し替えて、関節つきの腕・脚を足す
+    # バニラの三人称の描き方を、このアドオンのもの（腕・脚を隠す版）に差し替えて、関節つきの腕・脚を足す（一人称はバニラのまま）
     rcs = []
     for entry in desc["render_controllers"]:
         (name, cond), = entry.items()
         if name == "controller.render.player.third_person":
             rcs.append({"controller.render.motion.player.third_person": cond})
             rcs.append({"controller.render.motion.limbs.third_person": cond})
-        elif name == "controller.render.player.first_person":
-            rcs.append({"controller.render.motion.player.first_person": cond})
-            rcs.append({"controller.render.motion.limbs.first_person": cond})
         else:
             rcs.append(entry)
     desc["render_controllers"] = rcs
@@ -490,6 +562,7 @@ def main():
     for k, f in ANIMATIONS.items():
         anims[k] = f()
     write_json("animations/motion.player.animation.json", {"format_version": "1.8.0", "animations": anims})
+    write_json("animation_controllers/motion.player.animation_controllers.json", build_animation_controllers())
     write_json("entity/player.entity.json", build_entity())
 
 

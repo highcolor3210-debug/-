@@ -15,6 +15,8 @@ for (const f of ["player.animation.json", "humanoid.animation.json", "player_fir
 Object.assign(ANIMS, readJson(path.join(RP, "animations", "motion.player.animation.json")).animations);
 
 const ENTITY = readJson(path.join(RP, "entity", "player.entity.json"))["minecraft:client_entity"].description;
+// このアドオンのアニメーションは root コントローラー（の写し）の first_person / third_person の状態の中にある
+const ROOT = readJson(path.join(RP, "animation_controllers", "motion.player.animation_controllers.json")).animation_controllers[ENTITY.animations.root];
 
 // バニラの root コントローラーの中から、プレビューで再現する分（三人称／一人称）
 const VANILLA_THIRD = [
@@ -101,7 +103,7 @@ function simulate(scenario) {
       applyAnimation(ENTITY.animations[name], scope, bones, 1, t);
     }
     const mine = [];
-    for (const entry of ENTITY.scripts.animate) {
+    for (const entry of ROOT.states[fp ? "first_person" : "third_person"].animations) {
       if (typeof entry !== "object") continue;
       const [name, cond] = Object.entries(entry)[0];
       if (!name.startsWith("motion.")) continue;

@@ -46,9 +46,9 @@ function jumping(fp, sword) {
     return s;
   };
 }
-function attacking(fp) {
+function attacking(fp, sword = true) {
   return (t) => {
-    const s = base(fp, true);
+    const s = base(fp, sword);
     s.vars.attack_time = t < 0.3 ? t / 0.3 : 0; // 0.3秒（6tick）の振り
     return s;
   };
@@ -58,9 +58,12 @@ const SCENES = [
   { name: "00_idle", title: "止まっている（スキンの貼り方の確認）", frames: 1, dt: 0.05, state: () => base(false, true), views: ["front", "side", "back"], holding: true },
   { name: "01_walk", title: "歩き（三人称）", frames: 8, dt: 0.06, state: moving(4.3, 0.6, 0, false, true), views: ["front", "side"], holding: true },
   { name: "02_run", title: "走り（三人称）", frames: 8, dt: 0.045, state: moving(5.6, 0.9, 1, false, true), views: ["front", "side"], holding: true, warm: 0.6 },
+  { name: "02b_run_fallback", title: "走り（q.is_sprinting が 0 でも、振りの大きさ 1.0 で走りになるか）", frames: 8, dt: 0.045, state: moving(5.6, 1.0, 0, false, true), views: ["side"], holding: true, warm: 0.6 },
   { name: "03_jump", title: "ジャンプと着地（三人称）", frames: 10, dt: 0.09, state: jumping(false, true), views: ["side"], holding: true },
   { name: "04_sword_tp", title: "剣の振り（三人称）", frames: 9, dt: 0.0333, state: attacking(false), views: ["front", "side"], holding: true },
+  { name: "04b_punch_tp", title: "素手のパンチ（三人称）", frames: 9, dt: 0.0333, state: attacking(false, false), views: ["front", "side"], holding: false },
   { name: "05_fp", title: "一人称：止まる・走り・上り・下り・着地", custom: true },
+  { name: "06b_punch_fp", title: "素手のパンチ（一人称）", frames: 9, dt: 0.0333, state: attacking(true, false), views: ["fp"], holding: false },
   { name: "06_sword_fp", title: "剣の振り（一人称）", frames: 9, dt: 0.0333, state: attacking(true), views: ["fp"], holding: true },
 ];
 
