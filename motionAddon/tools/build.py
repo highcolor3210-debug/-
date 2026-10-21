@@ -24,8 +24,9 @@
 - 前腕・すねの骨の回転の中心（pivot）は、スキンのモデルの重ね着の骨と同じ肩・ももの付け根にしておき、
   ひじ・ひざを中心に曲がるよう位置をずらす（joint_follow）。ゲームがこのモデルの pivot で計算し直しても、
   スキンのモデルの計算結果をそのまま使っても、同じ見た目になるようにするため。
-- キャラクタークリエイターのスキン・マーケットプレイスのスキンは描き方が違うので、関節を使わずバニラのまま
-  （v.motion_joints が 0）。
+- 関節を使うのは、スキンのモデルが標準の形（スティーブ型・アレックス型と同じ関節の位置）のときだけ
+  （v.motion_joints）。マーケットプレイスのスキンも標準の形なら使う。形が違うスキン（キャラクタークリエイターや、
+  体の形を変えたスキン）はスキンの絵の並びも違うことがあるので、関節を使わずバニラのまま。
 - スキンの腕の太さ（スティーブ体型／アレックス体型）は、スキンのモデルの rightItem の高さで見分ける
   （太い 15.0、細い 14.5。このアドオンのモデルには rightItem がないので、必ずスキンのモデルの値になる）。
   関節つきのモデルは両方の体型ぶん入れておき、描くときに選ぶ。
@@ -64,7 +65,16 @@ SKIN_GEO = {
 # root・waist・body の骨組みは custom から取る（customSlim は親から受け継ぐ前提で持っていないものがある）
 SKELETON = SKIN_GEO["wide"]
 GEO_ID = {"wide": "geometry.motion.limbs", "slim": "geometry.motion.limbs_slim"}
-SLIM_CHECK = "(q.get_default_bone_pivot('rightitem', 1) > 14.25 && q.get_default_bone_pivot('rightitem', 1) < 14.75)"
+# スキンのモデルの関節の位置が標準の形と同じか（q.get_default_bone_pivot で読む）
+SHAPE_BONES = ["rightArm", "leftArm", "rightLeg", "leftLeg", "rightItem", "leftItem"]
+
+
+def shape_check(variant):
+    parts = []
+    for name in SHAPE_BONES:
+        for axis, v in enumerate(SKIN_GEO[variant][name]["pivot"]):
+            parts.append(f"math.abs(q.get_default_bone_pivot('{name.lower()}', {axis}) - ({float(v)})) < 0.05")
+    return "(" + " && ".join(parts) + ")"
 
 # ---------------------------------------------------------------- モデル
 def face_uvs(u0, v0, w, h, d, y_from, y_to):
@@ -491,8 +501,9 @@ INITIALIZE = [
     "v.motion_air_start = 0.0;", "v.motion_land_time = -10.0;", "v.motion_last_life = 0.0;",
 ]
 PRE_ANIMATION = [
-    "v.motion_joints = !q.is_persona_or_premium_skin;",
-    f"v.motion_slim = {SLIM_CHECK};",
+    f"v.motion_wide = {shape_check('wide')};",
+    f"v.motion_slim = {shape_check('slim')};",
+    "v.motion_joints = v.motion_wide || v.motion_slim;",
     "v.motion_dt = math.clamp(q.delta_time, 0.0, 0.1);",
     "v.motion_follow = math.min(1.0, v.motion_dt * 8.0);",
     "v.motion_phase = q.modified_distance_moved * 38.17;",

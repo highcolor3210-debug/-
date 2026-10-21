@@ -59,6 +59,9 @@ const SCENES = [
   { name: "01_walk", title: "歩き（三人称）", frames: 8, dt: 0.06, state: moving(4.3, 0.6, 0, false, true), views: ["front", "side"], holding: true },
   { name: "02_run", title: "走り（三人称）", frames: 8, dt: 0.045, state: moving(5.6, 0.9, 1, false, true), views: ["front", "side"], holding: true, warm: 0.6 },
   { name: "02b_run_fallback", title: "走り（q.is_sprinting が 0 でも、振りの大きさ 1.0 で走りになるか）", frames: 8, dt: 0.045, state: moving(5.6, 1.0, 0, false, true), views: ["side"], holding: true, warm: 0.6 },
+  { name: "02c_custom_shape", title: "形が違うスキン（肩の位置が 1 ずれている）→ 関節を使わずバニラの腕・脚になるか", frames: 4, dt: 0.06,
+    state: (t) => { const st = moving(4.3, 0.6, 0, false, true)(t); st.queries.get_default_bone_pivot = (b, a) => (String(b).toLowerCase() === "rightarm" && a === 1 ? 23 : pivot(b, a)); return st; },
+    views: ["front"], holding: true },
   { name: "03_jump", title: "ジャンプと着地（三人称）", frames: 10, dt: 0.09, state: jumping(false, true), views: ["side"], holding: true },
   { name: "04_sword_tp", title: "剣の振り（三人称）", frames: 9, dt: 0.0333, state: attacking(false), views: ["front", "side"], holding: true },
   { name: "04b_punch_tp", title: "素手のパンチ（三人称）", frames: 9, dt: 0.0333, state: attacking(false, false), views: ["front", "side"], holding: false },
@@ -89,13 +92,13 @@ const SCENES = [
         ["着地直後", pick(jumping(true, true), 0.75)],
         ["素手", pick(() => base(true, false), 0.5)],
       ];
-      cells = items.map(([label, f], i) => ({ view: "fp", label, bones: f.bones, holding: i < 5, joints: true, slim: f.vars.motion_slim }));
+      cells = items.map(([label, f], i) => ({ view: "fp", label, bones: f.bones, holding: i < 5, joints: !!f.vars.motion_joints, slim: f.vars.motion_slim }));
       cols = cells.length;
     } else {
       const skip = Math.round((sc.warm ?? 0) / sc.dt);
       const frames = simulate({ frames: skip + sc.frames, dt: sc.dt, state: sc.state, substeps: 4 }).slice(skip);
       for (const view of sc.views) {
-        frames.forEach((f, i) => cells.push({ view, label: `${view} ${(i * sc.dt * 1000).toFixed(0)}ms${f.vars.motion_slim ? " (細)" : ""}`, bones: f.bones, holding: sc.holding, joints: true, slim: f.vars.motion_slim }));
+        frames.forEach((f, i) => cells.push({ view, label: `${view} ${(i * sc.dt * 1000).toFixed(0)}ms${f.vars.motion_slim ? " (細)" : ""}`, bones: f.bones, holding: sc.holding, joints: !!f.vars.motion_joints, slim: f.vars.motion_slim }));
       }
       cols = Math.max(sc.frames, sc.views.length === 3 ? 3 : 1);
       if (sc.frames === 1) cols = sc.views.length;
