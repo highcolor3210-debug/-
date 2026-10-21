@@ -1,7 +1,5 @@
 """Motion Addon を組み立てる
-使い方: python build.py [wide|slim] [出力先のリソースパック]
-  wide＝スティーブ体型（既定）、slim＝アレックス体型。出力先の既定は motionAddon_RP/
-  （manifest.json と pack_icon.png は出力先にあるものをそのまま使う）
+使い方: python build.py [出力先のリソースパック]（既定は motionAddon_RP/。manifest.json と pack_icon.png はそのまま使う）
 
 作るもの（motionAddon_RP/ の中）
   models/entity/motion_limbs.geo.json          ひじ・ひざのある腕と脚（プレイヤーのスキンで描く）
@@ -16,6 +14,9 @@
   前腕（forearm）とすね（shin）だけがこのアドオンの骨。
 - キャラクタークリエイターのスキン・マーケットプレイスのスキンは描き方が違うので、関節を使わずバニラのまま
   （v.motion_joints が 0）。
+- スキンの腕の太さ（スティーブ体型／アレックス体型）は、スキンのモデルの rightItem の高さで見分ける
+  （太い 15.0、細い 14.5。このアドオンのモデルには rightItem がないので、必ずスキンのモデルの値になる）。
+  関節つきのモデルは両方の体型ぶん入れておき、描くときに選ぶ。
 - 手に持つ物はバニラの腕の rightItem に付く（ひじがない）。前腕を曲げたときは、rightItem の骨を
   ひじを中心に同じだけ回したのと同じ位置・向きへ動かして、手から離れないようにしている（hand_follow）。
 """
@@ -26,9 +27,7 @@ import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-VARIANT = sys.argv[1] if len(sys.argv) > 1 else "wide"
-RP = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, "..", "motionAddon_RP")
-assert VARIANT in ("wide", "slim")
+RP = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "..", "motionAddon_RP")
 
 
 def read_json(path):
@@ -46,10 +45,14 @@ def write_json(rel, data):
 
 
 MOBS = read_json(os.path.join(HERE, "vanilla", "mobs.json"))
-BASE_GEO = MOBS["geometry.humanoid.customSlim" if VARIANT == "slim" else "geometry.humanoid.custom:geometry.humanoid"]
-BONES = {b["name"]: b for b in BASE_GEO["bones"]}
-# customSlim はマントや root を親の geometry.humanoid.custom から受け継がないので、骨組みは custom から取る
-SKELETON = {b["name"]: b for b in MOBS["geometry.humanoid.custom:geometry.humanoid"]["bones"]}
+SKIN_GEO = {
+    "wide": {b["name"]: b for b in MOBS["geometry.humanoid.custom:geometry.humanoid"]["bones"]},
+    "slim": {b["name"]: b for b in MOBS["geometry.humanoid.customSlim"]["bones"]},
+}
+# root・waist・body の骨組みは custom から取る（customSlim は親から受け継ぐ前提で持っていないものがある）
+SKELETON = SKIN_GEO["wide"]
+GEO_ID = {"wide": "geometry.motion.limbs", "slim": "geometry.motion.limbs_slim"}
+SLIM_CHECK = "(q.get_default_bone_pivot('rightitem', 1) > 14.25 && q.get_default_bone_pivot('rightitem', 1) < 14.75)"
 
 # ---------------------------------------------------------------- モデル
 def face_uvs(u0, v0, w, h, d, y_from, y_to):
@@ -93,7 +96,8 @@ def joint_height(bone):
     return c["origin"][1] + c["size"][1] / 2  # 箱の真ん中
 
 
-def build_geometry():
+def build_geometry(variant):
+    BONES = SKIN_GEO[variant]
     bones = []
     for name in ("root", "waist", "body"):
         b = SKELETON[name]
@@ -108,25 +112,26 @@ def build_geometry():
             cubes_low.append(b)
         bones.append({"name": upper_name, "parent": up["parent"], "pivot": up["pivot"], "cubes": cubes_up})
         bones.append({"name": lower_name, "parent": upper_name, "pivot": [up["pivot"][0], cut, up["pivot"][2]], "cubes": cubes_low})
-    ident = "geometry.motion.limbs_slim" if VARIANT == "slim" else "geometry.motion.limbs"
-    return ident, {
-        "format_version": "1.12.0",
-        "minecraft:geometry": [{
+    return {
             "description": {
-                "identifier": ident,
+                "identifier": GEO_ID[variant],
                 "texture_width": 64, "texture_height": 64,
                 "visible_bounds_width": 2, "visible_bounds_height": 3, "visible_bounds_offset": [0, 1.5, 0],
             },
             "bones": bones,
-        }],
     }
 
 
 # ---------------------------------------------------------------- 手に持つ物をひじに合わせて動かす
-ARM = BONES["rightArm"]
-ELBOW_Y = joint_height(ARM)
-ITEM = BONES["rightItem"]["pivot"]
-D_Y, D_Z = ITEM[1] - ELBOW_Y, ITEM[2] - ARM["pivot"][2]
+def item_offset(variant):
+    b = SKIN_GEO[variant]
+    item = b["rightItem"]["pivot"]
+    return item[1] - joint_height(b["rightArm"]), item[2] - b["rightArm"]["pivot"][2]
+
+
+# ひじから rightItem までの距離は どちらの体型でも同じ（3 下・1 前）なので、ひとつの式で両方に使える
+D_Y, D_Z = item_offset("wide")
+assert (D_Y, D_Z) == item_offset("slim")
 
 
 def hand_follow(theta):
@@ -359,6 +364,7 @@ INITIALIZE = [
 ]
 PRE_ANIMATION = [
     "v.motion_joints = !q.is_persona_or_premium_skin;",
+    f"v.motion_slim = {SLIM_CHECK};",
     "v.motion_dt = math.clamp(q.delta_time, 0.0, 0.1);",
     "v.motion_follow = math.min(1.0, v.motion_dt * 8.0);",
     "v.motion_phase = q.modified_distance_moved * 38.17;",
@@ -418,16 +424,19 @@ def build_render_controllers():
         elif "rightSleeve" in entry:
             entry["rightSleeve"] = f"({entry['rightSleeve']}) && !v.motion_joints"
     assert fp_arm_cond
+    arrays = {"geometries": {"Array.motion_limbs": ["Geometry.motion_limbs", "Geometry.motion_limbs_slim"]}}
     limbs_tp = {
         "rebuild_animation_matrices": True,
-        "geometry": "Geometry.motion_limbs",
+        "arrays": arrays,
+        "geometry": "Array.motion_limbs[v.motion_slim]",
         "materials": [{"*": "Material.default"}],
         "textures": ["Texture.default"],
         "part_visibility": [{"*": "v.motion_joints"}],
     }
     limbs_fp = {
         "rebuild_animation_matrices": True,
-        "geometry": "Geometry.motion_limbs",
+        "arrays": arrays,
+        "geometry": "Array.motion_limbs[v.motion_slim]",
         "materials": [{"*": "Material.default"}],
         "textures": ["Texture.default"],
         "part_visibility": [{"*": False}, {"rightArm": f"v.motion_joints && ({fp_arm_cond})"}, {"rightForearm": f"v.motion_joints && ({fp_arm_cond})"}],
@@ -443,7 +452,7 @@ def build_render_controllers():
     }
 
 
-def build_entity(geo_id):
+def build_entity():
     data = read_json(os.path.join(HERE, "vanilla", "player.entity.json"))
     desc = data["minecraft:client_entity"]["description"]
     scripts = desc["scripts"]
@@ -453,7 +462,8 @@ def build_entity(geo_id):
         assert k not in desc["animations"], k
     desc["animations"].update(ENTITY_ANIMATIONS)
     scripts["animate"] = scripts.get("animate", []) + ANIMATE  # バニラ（root）のあとに足す
-    desc["geometry"]["motion_limbs"] = geo_id
+    desc["geometry"]["motion_limbs"] = GEO_ID["wide"]
+    desc["geometry"]["motion_limbs_slim"] = GEO_ID["slim"]
     # バニラの一人称・三人称の描き方を、このアドオンのもの（腕・脚を隠す版）に差し替えて、関節つきの腕・脚を足す
     rcs = []
     for entry in desc["render_controllers"]:
@@ -471,15 +481,16 @@ def build_entity(geo_id):
 
 
 def main():
-    geo_id, geo = build_geometry()
-    write_json("models/entity/motion_limbs.geo.json", geo)
+    write_json("models/entity/motion_limbs.geo.json", {
+        "format_version": "1.12.0",
+        "minecraft:geometry": [build_geometry("wide"), build_geometry("slim")],
+    })
     write_json("render_controllers/motion.player.render_controllers.json", build_render_controllers())
     anims = procedural_animations()
     for k, f in ANIMATIONS.items():
         anims[k] = f()
     write_json("animations/motion.player.animation.json", {"format_version": "1.8.0", "animations": anims})
-    write_json("entity/player.entity.json", build_entity(geo_id))
-    print("variant:", VARIANT)
+    write_json("entity/player.entity.json", build_entity())
 
 
 if __name__ == "__main__":

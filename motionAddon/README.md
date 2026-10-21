@@ -2,7 +2,7 @@
 
 プレイヤーの動きを作り直すリソースパック（スクリプトなし）。nextAdventure とは別のアドオン。
 
-## Ver.0.2.0
+## Ver.0.2.1
 - **ひじ・ひざ**を追加。腕と脚を上下2つに分けて、プレイヤーのスキンで描く
 - 三人称：歩き・走りのキーフレームのサイクル（ひじの曲げ、ひざの曲げ伸ばし、前傾、体のひねり、上下の弾み）、
   ジャンプ（上りでひざを抱え、下りで伸ばす）、着地（ひざを曲げて沈む）、剣の振り（振りかぶって斜めに切る）
@@ -10,9 +10,9 @@
 - 剣は `minecraft:is_sword` タグの付いたアイテムで動く
 
 ## 体型
-スキンが太い腕（スティーブ）か細い腕（アレックス）かは Molang で分からないので、パックを2つ用意している。
-- `Motion Addon`：スティーブ体型（`python tools/build.py wide`）
-- `Motion Addon（アレックス体型）`：アレックス体型（`python tools/build.py slim <出力先>`。manifest の uuid は別）
+スティーブ体型（太い腕）とアレックス体型（細い腕）の両方に、ひとつのパックで対応する。
+スキンのモデルの rightItem の高さ（太い 15.0／細い 14.5）を `q.get_default_bone_pivot` で読んで見分け（`v.motion_slim`）、
+関節つきのモデルを2つのうちから選んで描く。
 
 キャラクタークリエイターのスキンとマーケットプレイスのスキンは描き方が違うので、関節を使わずバニラの腕・脚のまま
 （`q.is_persona_or_premium_skin`）。動き（歩き・走り・剣の振り）はそのまま付く。
@@ -28,10 +28,10 @@
 - 鎧（腕・脚）はバニラの骨に付くので、ひじ・ひざでは曲がらない
 
 ## 作り方・確認
-- `python tools/build.py [wide|slim] [出力先]`：モデル・描き方・アニメーション・player.entity.json を作る。
+- `python tools/build.py [出力先]`：モデル・描き方・アニメーション・player.entity.json を作る。
   数値（キーフレーム）は build.py の `WALK` `RUN` `SLASH_TP` `SLASH_FP` など
 - `node tools/preview/render.cjs <出力フォルダ> <three.min.js> <スキンの png>`：確認画像を作る（Playwright と Chromium が必要）。
-  Molang を評価して、スキンを貼った人型を three.js で描く。`MOTION_RP=<出力先> MOTION_SLIM=1` でアレックス体型
+  Molang を評価して、スキンを貼った人型を three.js で描く。`MOTION_SLIM=1` でアレックス体型のスキンのモデル（alex.png と組み合わせる）
 - マイクラの更新でバニラのファイルが変わったら、`tools/vanilla/` を差し替えて build.py を実行し直す
 
 ## パッケージ

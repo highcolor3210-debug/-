@@ -16,7 +16,8 @@
       "geometry": {
         "default": "geometry.humanoid.custom",
         "cape": "geometry.cape",
-        "motion_limbs": "geometry.motion.limbs"
+        "motion_limbs": "geometry.motion.limbs",
+        "motion_limbs_slim": "geometry.motion.limbs_slim"
       },
       "scripts": {
         "scale": "0.9375",
@@ -46,6 +47,7 @@
           "variable.item_use_normalized = query.main_hand_item_use_duration / query.main_hand_item_max_duration;",
           "variable.riding_y_offset = query.is_riding_any_entity_of_type('minecraft:minecart', 'minecraft:boat', 'minecraft:chest_boat', 'minecraft:strider') ? -3.0 : 0.0;",
           "v.motion_joints = !q.is_persona_or_premium_skin;",
+          "v.motion_slim = (q.get_default_bone_pivot('rightitem', 1) > 14.25 && q.get_default_bone_pivot('rightitem', 1) < 14.75);",
           "v.motion_dt = math.clamp(q.delta_time, 0.0, 0.1);",
           "v.motion_follow = math.min(1.0, v.motion_dt * 8.0);",
           "v.motion_phase = q.modified_distance_moved * 38.17;",

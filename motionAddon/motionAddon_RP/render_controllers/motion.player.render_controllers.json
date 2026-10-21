@@ -104,7 +104,15 @@
     },
     "controller.render.motion.limbs.third_person": {
       "rebuild_animation_matrices": true,
-      "geometry": "Geometry.motion_limbs",
+      "arrays": {
+        "geometries": {
+          "Array.motion_limbs": [
+            "Geometry.motion_limbs",
+            "Geometry.motion_limbs_slim"
+          ]
+        }
+      },
+      "geometry": "Array.motion_limbs[v.motion_slim]",
       "materials": [
         {
           "*": "Material.default"
@@ -121,7 +129,15 @@
     },
     "controller.render.motion.limbs.first_person": {
       "rebuild_animation_matrices": true,
-      "geometry": "Geometry.motion_limbs",
+      "arrays": {
+        "geometries": {
+          "Array.motion_limbs": [
+            "Geometry.motion_limbs",
+            "Geometry.motion_limbs_slim"
+          ]
+        }
+      },
+      "geometry": "Array.motion_limbs[v.motion_slim]",
       "materials": [
         {
           "*": "Material.default"

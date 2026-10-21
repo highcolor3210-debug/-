@@ -86,13 +86,13 @@ const SCENES = [
         ["着地直後", pick(jumping(true, true), 0.75)],
         ["素手", pick(() => base(true, false), 0.5)],
       ];
-      cells = items.map(([label, f], i) => ({ view: "fp", label, bones: f.bones, holding: i < 5, joints: true }));
+      cells = items.map(([label, f], i) => ({ view: "fp", label, bones: f.bones, holding: i < 5, joints: true, slim: f.vars.motion_slim }));
       cols = cells.length;
     } else {
       const skip = Math.round((sc.warm ?? 0) / sc.dt);
       const frames = simulate({ frames: skip + sc.frames, dt: sc.dt, state: sc.state, substeps: 4 }).slice(skip);
       for (const view of sc.views) {
-        frames.forEach((f, i) => cells.push({ view, label: `${view} ${(i * sc.dt * 1000).toFixed(0)}ms`, bones: f.bones, holding: sc.holding, joints: true }));
+        frames.forEach((f, i) => cells.push({ view, label: `${view} ${(i * sc.dt * 1000).toFixed(0)}ms${f.vars.motion_slim ? " (細)" : ""}`, bones: f.bones, holding: sc.holding, joints: true, slim: f.vars.motion_slim }));
       }
       cols = Math.max(sc.frames, sc.views.length === 3 ? 3 : 1);
       if (sc.frames === 1) cols = sc.views.length;

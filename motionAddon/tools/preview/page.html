@@ -9,7 +9,7 @@
 //   window.drawSheet(...)：何コマかを1枚の画像に並べる
 // 座標の向き：Blockbench と同じ（体の正面は -Z、統合版のファイルの x はここでは反転）
 let renderer, scene;
-const skel = { skin: {}, limbs: {} }; // 骨の名前（小文字） → THREE.Group
+const skel = { skin: {}, limbs: {}, limbs_slim: {} }; // 骨の名前（小文字） → THREE.Group
 const SIZE = 260;
 const SKIN_LIMBS = new Set(["rightarm", "rightsleeve", "leftarm", "leftsleeve", "rightleg", "rightpants", "leftleg", "leftpants"]);
 
@@ -84,7 +84,7 @@ window.setup = async (models, skinUrl) => {
   tex.needsUpdate = true;
   const mat = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide });
 
-  for (const key of ["skin", "limbs"]) {
+  for (const key of ["skin", "limbs", "limbs_slim"]) {
     const root = new THREE.Group();
     root.name = key;
     scene.add(root);
@@ -127,7 +127,7 @@ function showMeshes(group, on) {
   for (const m of group.children) if (m.isMesh) m.visible = on;
 }
 
-function setVisibility(fp, holding, joints) {
+function setVisibility(fp, holding, joints, slim) {
   // 三人称：スキンは頭・体（関節を使うときは腕・脚を隠す）、関節つきの腕・脚を出す
   // 一人称：何も持っていないときだけ右腕。持っているときは持ち物だけ
   for (const [name, g] of Object.entries(skel.skin)) {
@@ -135,10 +135,14 @@ function setVisibility(fp, holding, joints) {
     if (fp && !joints && (name === "rightarm" || name === "rightsleeve")) on = !holding;
     showMeshes(g, on);
   }
-  for (const [name, g] of Object.entries(skel.limbs)) {
-    let on = joints && !fp;
-    if (fp) on = joints && !holding && (name === "rightarm" || name === "rightforearm");
-    showMeshes(g, on);
+  // 関節つきの腕・脚は、ゲームと同じく v.motion_slim で太い／細いを選ぶ
+  for (const key of ["limbs", "limbs_slim"]) {
+    const use = (key === "limbs_slim") === !!slim;
+    for (const [name, g] of Object.entries(skel[key])) {
+      let on = use && joints && !fp;
+      if (fp) on = use && joints && !holding && (name === "rightarm" || name === "rightforearm");
+      showMeshes(g, on);
+    }
   }
   scene.getObjectByName("sword").visible = holding;
   scene.getObjectByName("floor").visible = !fp;
@@ -163,7 +167,7 @@ window.drawSheet = (rows, cols, cells, title) => {
   ctx.fillStyle = "#fff"; ctx.font = "16px sans-serif"; ctx.fillText(title, 8, 19);
   cells.forEach((cell, i) => {
     const fp = cell.view === "fp";
-    setVisibility(fp, cell.holding, cell.joints);
+    setVisibility(fp, cell.holding, cell.joints, cell.slim);
     scene.background = new THREE.Color(fp ? 0x8fb8e8 : 0x9cc3e6);
     applyPose(cell.bones);
     renderer.render(scene, camera(cell.view));

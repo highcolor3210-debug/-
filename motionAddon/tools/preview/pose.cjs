@@ -4,7 +4,7 @@ const path = require("path");
 const { evaluate, run, makeScope } = require("./molang.cjs");
 
 const TOOLS = path.join(__dirname, "..");
-// MOTION_RP で別の出力先（アレックス体型の版など）を、MOTION_SLIM=1 でアレックス体型のスキンのモデルを使う
+// MOTION_RP で別の出力先を、MOTION_SLIM=1 でアレックス体型のスキンのモデルを使う
 const RP = process.env.MOTION_RP || path.join(TOOLS, "..", "motionAddon_RP");
 const readJson = (p) => JSON.parse(fs.readFileSync(p, "utf8").replace(/^\s*\/\/.*$/gm, ""));
 
@@ -118,11 +118,12 @@ function simulate(scenario) {
 /** スキン（バニラの人型）と、関節つきの腕・脚のモデル */
 function models() {
   const mobs = readJson(path.join(TOOLS, "vanilla", "mobs.json"));
-  const limbs = readJson(path.join(RP, "models", "entity", "motion_limbs.geo.json"))["minecraft:geometry"][0].bones;
+  const geos = readJson(path.join(RP, "models", "entity", "motion_limbs.geo.json"))["minecraft:geometry"];
+  const limbsOf = (id) => geos.find((g) => g.description.identifier === id).bones;
   const skin = process.env.MOTION_SLIM
     ? [...mobs["geometry.humanoid.customSlim"].bones, ...mobs["geometry.humanoid.custom:geometry.humanoid"].bones.filter((b) => b.name === "root")]
     : mobs["geometry.humanoid.custom:geometry.humanoid"].bones;
-  return { skin, limbs };
+  return { skin, limbs: limbsOf("geometry.motion.limbs"), limbs_slim: limbsOf("geometry.motion.limbs_slim") };
 }
 
 module.exports = { simulate, models };
