@@ -1,0 +1,29 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Motion Addon",
+    "description": "プレイヤーの動き（歩き・走り・ジャンプ・剣の振り）を作り直すリソースパック",
+    "uuid": "14fbe246-15d8-4c17-819c-ae0aa627a725",
+    "version": [
+      0,
+      1,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      26,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "a41ea719-704b-4bd0-b8f5-459d478b33a9",
+      "version": [
+        0,
+        1,
+        0
+      ]
+    }
+  ]
+}

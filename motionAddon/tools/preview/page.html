@@ -1,0 +1,127 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><style>body{margin:0;background:#222}canvas{display:block}</style></head>
+<body>
+<canvas id="grid"></canvas>
+<script>
+// プレビュー用の描画。window.setup(bones) で人型を作り、window.drawSheet(...) で何コマかを1枚の画像に並べる
+// 座標の向き：Blockbench と同じ（体の正面は -Z、統合版のファイルの x はここでは反転）
+let renderer, scene, model;
+const groups = {};
+const SIZE = 260;
+const COLORS = { head: 0xe0b48a, hat: 0xe0b48a, body: 0x3aa6a6, rightarm: 0xd9a77f, leftarm: 0xd9a77f, rightleg: 0x3b4fa0, leftleg: 0x3b4fa0 };
+const SHOW = new Set(["head", "body", "rightarm", "leftarm", "rightleg", "leftleg", "rightitem"]);
+
+window.setup = (bones) => {
+  renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setSize(SIZE, SIZE);
+  scene = new THREE.Scene();
+  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+  sun.position.set(-30, 60, -40);
+  scene.add(sun);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshLambertMaterial({ color: 0x5f8f3f }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.name = "floor";
+  scene.add(floor);
+
+  model = new THREE.Group();
+  scene.add(model);
+  const byName = {};
+  for (const b of bones) byName[b.name.toLowerCase()] = b;
+  const pivotOf = (b) => (b ? [-(b.pivot?.[0] ?? 0), b.pivot?.[1] ?? 0, b.pivot?.[2] ?? 0] : [0, 0, 0]);
+  for (const b of bones) {
+    const g = new THREE.Group();
+    g.name = b.name.toLowerCase();
+    groups[g.name] = g;
+  }
+  for (const b of bones) {
+    const g = groups[b.name.toLowerCase()];
+    const parent = b.parent ? byName[b.parent.toLowerCase()] : null;
+    const p = pivotOf(b), pp = pivotOf(parent);
+    g.userData.rest = new THREE.Vector3(p[0] - pp[0], p[1] - pp[1], p[2] - pp[2]);
+    g.position.copy(g.userData.rest);
+    (parent ? groups[parent.name.toLowerCase()] : model).add(g);
+    if (!SHOW.has(g.name)) continue;
+    for (const c of b.cubes ?? []) {
+      if (c.inflate) continue;
+      const [sx, sy, sz] = c.size;
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), new THREE.MeshLambertMaterial({ color: COLORS[g.name] ?? 0xcccccc }));
+      // 統合版の origin は最小の角。x を反転して中心へ
+      const cx = -(c.origin[0] + sx / 2), cy = c.origin[1] + sy / 2, cz = c.origin[2] + sz / 2;
+      mesh.position.set(cx - p[0], cy - p[1], cz - p[2]);
+      g.add(mesh);
+      if (g.name === "head") {
+        // 顔の向きがわかるよう、正面（-Z）に目
+        for (const ex of [-2, 2]) {
+          const eye = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 0.4), new THREE.MeshBasicMaterial({ color: 0x222222 }));
+          eye.position.set(cx - p[0] + ex, cy - p[1] + 0.5, cz - p[2] - sz / 2 - 0.2);
+          g.add(eye);
+        }
+      }
+    }
+  }
+  // 手に持つ剣（右手の rightitem に付ける。刃は腕を下ろしたとき前へ向く）
+  const sword = new THREE.Group();
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(1, 1.6, 11), new THREE.MeshLambertMaterial({ color: 0xd8e4f0 }));
+  blade.position.set(0, 0, -6.5);
+  const hilt = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 3), new THREE.MeshLambertMaterial({ color: 0x6b4423 }));
+  hilt.position.set(0, 0, 1);
+  const guard = new THREE.Mesh(new THREE.BoxGeometry(1.2, 4, 1), new THREE.MeshLambertMaterial({ color: 0xc9a227 }));
+  guard.position.set(0, 0, -0.8);
+  sword.add(blade, hilt, guard);
+  groups.rightitem?.add(sword);
+};
+
+function applyPose(bones) {
+  for (const g of Object.values(groups)) {
+    g.position.copy(g.userData.rest);
+    g.rotation.set(0, 0, 0);
+  }
+  for (const [name, b] of Object.entries(bones)) {
+    const g = groups[name];
+    if (!g) continue;
+    const r = b.rot.map((d) => (d * Math.PI) / 180);
+    // 統合版の回転 [x, y, z] → ここでは [-x, -y, z]、順番は ZYX（Blockbench と同じ）
+    g.rotation.set(-r[0], -r[1], r[2], "ZYX");
+    g.position.x += -b.pos[0];
+    g.position.y += b.pos[1];
+    g.position.z += b.pos[2];
+  }
+}
+
+function camera(view) {
+  const cam = new THREE.PerspectiveCamera(view === "fp" ? 70 : 40, 1, 0.1, 500);
+  if (view === "front") { cam.position.set(30, 26, -52); cam.lookAt(0, 15, 0); }
+  if (view === "side") { cam.position.set(62, 18, 0); cam.lookAt(0, 15, 0); }
+  // 一人称：バニラは頭を 180° 回し、+Z 側を見る作りになっている
+  if (view === "fp") { cam.position.set(0, 24, -1); cam.lookAt(0, 19, 20); }
+  return cam;
+}
+
+window.drawSheet = (rows, cols, cells, title) => {
+  const grid = document.getElementById("grid");
+  grid.width = cols * SIZE;
+  grid.height = rows * SIZE + 28;
+  const ctx = grid.getContext("2d");
+  ctx.fillStyle = "#222"; ctx.fillRect(0, 0, grid.width, grid.height);
+  ctx.fillStyle = "#fff"; ctx.font = "16px sans-serif"; ctx.fillText(title, 8, 19);
+  cells.forEach((cell, i) => {
+    const fp = cell.view === "fp";
+    // 一人称は右腕と持ち物だけ（体の骨は腕の親なので、骨ではなく箱だけ隠す）
+    for (const name of ["head", "body", "leftarm", "rightleg", "leftleg"]) {
+      for (const m of groups[name]?.children ?? []) if (m.isMesh) m.visible = !fp;
+    }
+    scene.getObjectByName("floor").visible = !fp;
+    scene.background = new THREE.Color(fp ? 0x8fb8e8 : 0x9cc3e6);
+    applyPose(cell.bones);
+    renderer.render(scene, camera(cell.view));
+    const x = (i % cols) * SIZE, y = Math.floor(i / cols) * SIZE + 28;
+    ctx.drawImage(renderer.domElement, x, y);
+    ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.fillRect(x, y, SIZE, 20);
+    ctx.fillStyle = "#fff"; ctx.font = "13px sans-serif"; ctx.fillText(cell.label, x + 5, y + 15);
+  });
+};
+</script>
+</body>
+</html>

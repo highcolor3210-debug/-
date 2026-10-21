@@ -1,0 +1,161 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.motion.third_person.walk": {
+      "loop": true,
+      "bones": {
+        "waist": {
+          "position": [
+            0.0,
+            "-math.abs(math.sin(v.motion_phase)) * 0.6 * v.motion_speed",
+            0.0
+          ]
+        },
+        "body": {
+          "rotation": [
+            0.0,
+            "-math.cos(v.motion_phase) * 7.0 * v.motion_speed",
+            "math.sin(v.motion_phase) * 1.5 * v.motion_speed"
+          ]
+        }
+      }
+    },
+    "animation.motion.third_person.sprint": {
+      "loop": true,
+      "bones": {
+        "waist": {
+          "rotation": [
+            "12.0 * v.motion_sprint",
+            0.0,
+            0.0
+          ]
+        },
+        "rightarm": {
+          "rotation": [
+            "-12.0 * v.motion_sprint",
+            0.0,
+            "5.0 * v.motion_sprint"
+          ]
+        },
+        "leftarm": {
+          "rotation": [
+            "-12.0 * v.motion_sprint",
+            0.0,
+            "-5.0 * v.motion_sprint"
+          ]
+        }
+      }
+    },
+    "animation.motion.third_person.air": {
+      "loop": true,
+      "bones": {
+        "waist": {
+          "position": [
+            0.0,
+            "-2.0 * v.motion_land",
+            0.0
+          ],
+          "rotation": [
+            "8.0 * v.motion_land",
+            0.0,
+            0.0
+          ]
+        },
+        "rightarm": {
+          "rotation": [
+            "-35.0 * v.motion_air",
+            0.0,
+            "20.0 * v.motion_air + 10.0 * v.motion_land"
+          ]
+        },
+        "leftarm": {
+          "rotation": [
+            "-35.0 * v.motion_air",
+            0.0,
+            "-20.0 * v.motion_air - 10.0 * v.motion_land"
+          ]
+        },
+        "rightleg": {
+          "rotation": [
+            "-25.0 * v.motion_air - 14.0 * v.motion_land",
+            0.0,
+            0.0
+          ]
+        },
+        "leftleg": {
+          "rotation": [
+            "15.0 * v.motion_air - 14.0 * v.motion_land",
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "animation.motion.third_person.sword_slash": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "rotation": [
+            0.0,
+            "math.lerp(25.0, -30.0, v.motion_slash) * v.motion_slash_env",
+            0.0
+          ]
+        }
+      }
+    },
+    "animation.motion.third_person.sword_slash_arm": {
+      "loop": true,
+      "override_previous_animation": true,
+      "bones": {
+        "rightarm": {
+          "rotation": [
+            "-18.0 - 62.0 * v.motion_slash_env",
+            "math.lerp(70.0, -60.0, v.motion_slash) * v.motion_slash_env",
+            0.0
+          ]
+        },
+        "rightitem": {
+          "rotation": [
+            "60.0 * v.motion_slash_env",
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "animation.motion.first_person.move": {
+      "loop": true,
+      "bones": {
+        "rightarm": {
+          "position": [
+            "-1.5 * v.motion_sprint",
+            "-2.5 * v.motion_sprint - v.motion_vy * 1.5 - 1.5 * v.motion_land",
+            "1.5 * v.motion_sprint"
+          ],
+          "rotation": [
+            "6.0 * v.motion_land - 6.0 * v.motion_sprint",
+            "18.0 * v.motion_sprint",
+            "-8.0 * v.motion_sprint"
+          ]
+        }
+      }
+    },
+    "animation.motion.first_person.sword_slash": {
+      "loop": true,
+      "bones": {
+        "rightarm": {
+          "position": [
+            "math.lerp(-4.0, 5.0, v.motion_slash) * v.motion_slash_env",
+            "1.5 * v.motion_slash_env",
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            "math.lerp(25.0, -35.0, v.motion_slash) * v.motion_slash_env",
+            "-15.0 * v.motion_slash_env"
+          ]
+        }
+      }
+    }
+  }
+}
