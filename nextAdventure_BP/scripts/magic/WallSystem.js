@@ -2,8 +2,9 @@
 // ・詠唱中は、壁が立つ場所に土ぼこりで目印を出す
 // ・発動すると、地面から壁がせり上がる（下の段から順に）
 // ・壁は作用量を持ち、ぶつかった魔術と削り合う。半分を切るとひび割れ、0で崩れる
-// ・時間が来たら崩れる。セーブして読み込み直したときに残った壁も自然に崩れる
-import { system } from "@minecraft/server";
+// ・時間が来たら崩れる。立っている壁ブロックの位置はワールドに記録しておき、
+//   セーブして読み込み直したときや、崩れる時にチャンクが読み込まれていなかったときも後で必ず消す
+import { system, world } from "@minecraft/server";
 import { killSpell } from "./SpellRegistry.js";
 import { remainingRatio } from "./Weakening.js";
 import { notify } from "./Notice.js";
@@ -23,6 +24,58 @@ const wallBlocks = new Map();
 const key = (dimId, p) => `${dimId}|${p.x}|${p.y}|${p.z}`;
 // API には x, y, z だけを渡す（row など余計なものが付いていると受け付けないことがある）
 const xyz = (p) => ({ x: p.x, y: p.y, z: p.z });
+
+// ---- 立っている壁ブロックの記録（ワールドに保存） ----
+const KEY_STANDING = "na:standing_walls";
+let standing; // key -> { d, x, y, z }
+
+function standingWalls() {
+  if (!standing) {
+    standing = new Map();
+    try {
+      const raw = world.getDynamicProperty(KEY_STANDING);
+      if (typeof raw === "string") for (const e of JSON.parse(raw)) standing.set(key(e.d, e), e);
+    } catch {}
+  }
+  return standing;
+}
+
+function saveStanding() {
+  try { world.setDynamicProperty(KEY_STANDING, JSON.stringify([...standingWalls().values()])); } catch {}
+}
+
+/** 壁ブロックを消す。消せた（またはもう壁ではない）なら true、チャンクが読み込まれていないなどで確かめられなければ false */
+function removeWallBlock(dim, p) {
+  let b;
+  try { b = dim.getBlock(p); } catch { return false; }
+  if (!b) return false;
+  if (!WALL_TYPES.has(b.typeId)) return true;
+  try {
+    dim.setBlockType(p, "minecraft:air");
+    dim.spawnParticle("minecraft:falling_dust_gravel_particle", { x: p.x + 0.5, y: p.y + 0.5, z: p.z + 0.5 });
+  } catch (e) {
+    console.warn(`[nextAdventure] 土壁ブロックを消せない: ${e}`);
+    return false;
+  }
+  return true;
+}
+
+/** どの壁にも属していない記録済みの壁ブロックを消す（読み込み時と、ときどき） */
+export function cleanupStandingWalls() {
+  const list = standingWalls();
+  if (!list.size) return;
+  let changed = false;
+  for (const [k, e] of list) {
+    if (wallBlocks.has(k)) continue; // まだ立っている壁
+    let dim;
+    try { dim = world.getDimension(e.d); } catch { continue; }
+    if (removeWallBlock(dim, e)) {
+      list.delete(k);
+      changed = true;
+    }
+  }
+  if (changed) saveStanding();
+}
 
 export function wallAt(dimId, loc) {
   const w = wallBlocks.get(key(dimId, { x: Math.floor(loc.x), y: Math.floor(loc.y), z: Math.floor(loc.z) }));
@@ -127,6 +180,7 @@ export function raiseWall(spell, caster) {
   for (const p of placeable) {
     const pos = xyz(p);
     wallBlocks.set(key(dimId, pos), spell);
+    standingWalls().set(key(dimId, pos), { d: dimId, ...pos });
     spell.blocks.push(pos);
     system.runTimeout(() => {
       if (spell.phase !== "wall" || !isOpen(plan.dim, pos)) return;
@@ -136,6 +190,7 @@ export function raiseWall(spell, caster) {
       } catch {}
     }, 1 + p.row * 2);
   }
+  saveStanding();
   sound(plan.dim, "dig.gravel", spell.pos, 1.0, 0.6);
   system.runTimeout(() => sound(plan.dim, "dig.stone", spell.pos, 0.8, 0.7), 3);
   return true;
@@ -181,15 +236,12 @@ export function crumble(spell) {
   if (spell.phase === "dead") return;
   const dim = spell.dimension;
   for (const p of spell.blocks ?? []) {
-    wallBlocks.delete(key(dim.id, p));
-    try {
-      const b = dim.getBlock(p);
-      if (b && WALL_TYPES.has(b.typeId)) {
-        b.setType("minecraft:air");
-        dim.spawnParticle("minecraft:falling_dust_gravel_particle", { x: p.x + 0.5, y: p.y + 0.5, z: p.z + 0.5 });
-      }
-    } catch {}
+    const k = key(dim.id, p);
+    wallBlocks.delete(k);
+    // 消せなかったものは記録に残し、cleanupStandingWalls があとで消す
+    if (removeWallBlock(dim, p)) standingWalls().delete(k);
   }
+  saveStanding();
   sound(dim, "dig.gravel", spell.pos, 1.0, 0.8);
   killSpell(spell);
 }
@@ -199,6 +251,7 @@ export function tickWalls(liveSpells) {
   for (const s of liveSpells.values()) {
     if (s.phase === "wall" && now >= s.expiresAt) crumble(s);
   }
+  if (now % 100 === 0) cleanupStandingWalls();
 }
 
 /** ブロック側の定期処理：どの壁にも属していない土壁ブロックは崩す（読み込み直しで残ったもの） */

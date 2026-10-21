@@ -5,7 +5,7 @@ import { WAND_ID, casts, startCast, releaseCast, interrupt, tickCasting, isCasti
 import { updateFlying } from "./magic/SpellUpdater.js";
 import { detectCollisions } from "./magic/CollisionDetector.js";
 import { onSpellContact } from "./magic/SpellInteractions.js";
-import { tickWalls, earthWallBlockComponent } from "./magic/WallSystem.js";
+import { tickWalls, earthWallBlockComponent, cleanupStandingWalls } from "./magic/WallSystem.js";
 import { openSelector, tickSelector, isSelecting, resetPlayer, forgetLoadout } from "./magic/Loadout.js";
 import { tickPower, savePower, useContractStone, forgetPlayer } from "./magic/Contracts.js";
 import { updateHud, forgetHud } from "./magic/Hud.js";
@@ -139,8 +139,9 @@ world.afterEvents.entityRemove.subscribe(
   { entityTypes: [MAGE_ID] }
 );
 
-// 読み込み時、前回の残り（保存された火の玉）を消す
+// 読み込み時、前回の残り（保存された火の玉・土壁）を消す
 world.afterEvents.worldLoad.subscribe(() => {
+  cleanupStandingWalls();
   for (const dimId of ["overworld", "nether", "the_end"]) {
     try {
       for (const e of world.getDimension(dimId).getEntities({ type: SPELL_ENTITY })) e.remove();

@@ -8,28 +8,25 @@
 //        [1]
 //     [4]   [2]
 //        [3]
-import { system, InputPermissionCategory } from "@minecraft/server";
+import { InputPermissionCategory } from "@minecraft/server";
 import { SPELLS } from "./SpellData.js";
-import { notify } from "./Notice.js";
 
 export const SLOT_COUNT = 4;
 // 「冒険の書」でセットできるようになるまでの初期構成
 const DEFAULT_LOADOUT = ["fire_bullet", "earth_wall", null, null];
 
-// アイコン（RP の font/glyph_E1.png）[通常, 選択中]
-const ICON = {
-  empty: ["", ""],
-  fire_bullet: ["", ""],
-  earth_wall: ["", ""],
+// HUD に送る魔術の記号（RP の tools/gen_hud_ui.py の SPELL_CODES と合わせる。N は空き）
+const HUD_CODE = {
+  fire_bullet: "F",
+  earth_wall: "E",
 };
-const CENTER = "\uE106"; // 十字のまんなかの飾り（左右のマスの間を空ける）
 
 const KEY_LOADOUT = "na:loadout";
 const KEY_SELECTED = "na:selected_slot";
 
 const loadouts = new Map();  // playerId -> string[]
 const selected = new Map();  // playerId -> number
-const selecting = new Map(); // playerId -> { hover, lastDrawn, anchor }
+const selecting = new Map(); // playerId -> { hover, anchor }
 
 export function getLoadout(player) {
   let l = loadouts.get(player.id);
@@ -84,22 +81,19 @@ function holdInPlace(player, st) {
 export function openSelector(player) {
   if (selecting.has(player.id)) return;
   const { x, z } = player.location;
-  selecting.set(player.id, { hover: getSelectedIndex(player), lastDrawn: -1, anchor: { x, z } });
+  selecting.set(player.id, { hover: getSelectedIndex(player), anchor: { x, z } });
   try { player.dimension.playSound("random.click", player.location, { volume: 0.4, pitch: 1.6 }); } catch {}
-  draw(player);
 }
 
 export function closeSelector(player, confirm = true) {
   const st = selecting.get(player.id);
   if (!st) return;
   selecting.delete(player.id);
-  try { player.onScreenDisplay.setTitle(" ", { fadeInDuration: 0, stayDuration: 0, fadeOutDuration: 4 }); } catch {}
   if (!confirm) return;
   const l = getLoadout(player);
   if (!l[st.hover]) return;
   selected.set(player.id, st.hover);
   try { player.setDynamicProperty(KEY_SELECTED, st.hover); } catch {}
-  notify(player, `§f${SPELLS[l[st.hover]].name} §7を構えた`, 30);
 }
 
 /** 移動入力の向き → 十字のマス（0=上、時計回り） */
@@ -127,39 +121,15 @@ export function tickSelector(player, stillValid) {
   if (want !== undefined && want !== st.hover && l[want]) {
     st.hover = want;
     try { player.dimension.playSound("random.click", player.location, { volume: 0.3, pitch: 2.0 }); } catch {}
-    st.lastDrawn = -1;
   }
-  // タイトルが消えないよう、ときどき描き直す
-  if (st.lastDrawn < 0 || system.currentTick - st.lastDrawn >= 10) draw(player);
 }
 
-function draw(player) {
+/** HUD 用：選択表示を開いていれば、各スロットの記号と選んでいるスロット */
+export function selectorState(player) {
   const st = selecting.get(player.id);
-  if (!st) return;
-  st.lastDrawn = system.currentTick;
+  if (!st) return undefined;
   const l = getLoadout(player);
-  const icon = (i) => (ICON[l[i]] ?? ICON.empty)[i === st.hover ? 1 : 0];
-  // 行ごとに中央揃えになるので、上下の行はアイコン1つだけで真ん中にそろう。
-  // アイコンは文字の行より背が高く、詰めると重なるので、行の間に空行をはさむ
-  const lines = [
-    icon(0),
-    icon(3) + CENTER + icon(1),
-    icon(2),
-  ];
-  const name = l[st.hover] ? SPELLS[l[st.hover]] : undefined;
-  const sub = name ? `§6${name.name} §7— ${attrName(name.attribute)}・${name.category === "simple" ? "単純魔術" : "複雑魔術"}` : "§7（空き）";
-  try {
-    player.onScreenDisplay.setTitle(lines.join("\n \n"), {
-      fadeInDuration: 0,
-      stayDuration: 20,
-      fadeOutDuration: 0,
-      subtitle: sub,
-    });
-  } catch {}
-}
-
-function attrName(a) {
-  return { fire: "火", water: "水", wind: "風", earth: "土" }[a] ?? a;
+  return { codes: l.map((id) => HUD_CODE[id] ?? "N"), hover: st.hover };
 }
 
 /** 入り直したときなど、歩けないまま残らないように */

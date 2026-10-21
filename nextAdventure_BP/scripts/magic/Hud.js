@@ -1,94 +1,106 @@
-// 画面表示（アクションバー）。契約精霊の力・詠唱・溜め・魔力ゲージ
+// 画面表示
+// ・魔力ゲージ／詠唱・溜めのバー／魔法の選択表示は RP の JSON UI（ui/hud_screen.json）で描く。
+//   ここでは「na_hud」で始まるデータ文字列をタイトルで送るだけ（そのタイトルは画面に出ない）。
+//   記号の意味は tools/gen_hud_ui.py を参照
+// ・お知らせと契約精霊の力はアクションバー
 import { system } from "@minecraft/server";
 import { SPIRITS, contractedSpirits, getPower } from "./Contracts.js";
 import { casts, holdingWand } from "./CastingSystem.js";
 import { currentNotice } from "./Notice.js";
-import { getSelectedSpell } from "./Loadout.js";
+import { selectorState } from "./Loadout.js";
 import { MANA, getMana } from "./Mana.js";
-import { isInfiniteMana } from "./Debug.js";
 
-// 魔力ゲージのグリフ（RP の font/glyph_E1.png、0x20〜）
-const MANA_GLYPH = {
-  full: "\uE120",
-  half: "\uE121",
-  empty: "\uE122",
-  infinite: "\uE12A",
-  digit: (n) => String.fromCharCode(0xe130 + n),
-};
-// 見えない間隔（幅：アイコン1つ分／半分）
-const SPACE_FULL = "\uE123";
-const SPACE_HALF = "\uE124";
+const HUD_MARK = "na_hud";
 const MANA_ICONS = 10; // 空腹ゲージと同じ10個
-
-/**
- * 魔力ゲージの行。アクションバーは中央揃えなので、左に同じ幅の見えない間隔を置き、
- * 見える部分が画面の右半分（空腹ゲージの真上）に来るようにする
- */
-function manaLine(player) {
-  const infinite = isInfiniteMana(player);
-  const v = getMana(player);
-  const per = MANA.max / MANA_ICONS;
-  let shown = "";
-  let pad = "";
-  for (let i = 0; i < MANA_ICONS; i++) {
-    const rest = v - i * per;
-    shown += infinite || rest >= per - 1e-6 ? MANA_GLYPH.full : rest >= per / 2 ? MANA_GLYPH.half : MANA_GLYPH.empty;
-    pad += SPACE_FULL;
-  }
-  if (infinite) {
-    shown += MANA_GLYPH.infinite;
-    pad += SPACE_FULL;
-  } else {
-    for (const ch of String(Math.floor(v))) {
-      shown += MANA_GLYPH.digit(Number(ch));
-      pad += SPACE_HALF;
-    }
-  }
-  return "§r" + pad + shown;
-}
+const BAR_SEGMENTS = 10;
 
 function bar(ratio, n, on, off) {
   const k = Math.round(Math.max(0, Math.min(1, ratio)) * n);
   return on + "|".repeat(k) + off + "|".repeat(n - k);
 }
 
+/** "[s1][s2]…[sN]" のように 1..k の記号を並べる */
+function upTo(prefix, ratio) {
+  const k = Math.round(Math.max(0, Math.min(1, ratio)) * BAR_SEGMENTS);
+  let out = "";
+  for (let n = 1; n <= k; n++) out += `[${prefix}${n}]`;
+  return out;
+}
+
+function showsSurvivalUi(player) {
+  try {
+    const mode = String(player.getGameMode()).toLowerCase();
+    return mode === "survival" || mode === "adventure";
+  } catch {
+    return true;
+  }
+}
+
+function hudData(player) {
+  let data = HUD_MARK;
+
+  // 魔力：右端（0番）から埋まる。空腹ゲージと同じ並び
+  if (showsSurvivalUi(player)) {
+    data += "[m]";
+    const per = MANA.max / MANA_ICONS;
+    const v = getMana(player);
+    for (let i = 0; i < MANA_ICONS; i++) {
+      const rest = v - i * per;
+      if (rest >= per - 1e-6) data += `[m${i}F]`;
+      else if (rest >= per / 2) data += `[m${i}H]`;
+    }
+  }
+
+  // 詠唱・溜め
+  const c = casts.get(player.id);
+  if (c) {
+    data += "[b]";
+    data += c.phase === "cast"
+      ? upTo("s", c.tick / c.castTicks)
+      : upTo("c", c.chargeTicks / c.def.charge.maxTicks);
+  }
+
+  // 魔法の選択表示
+  const sel = selectorState(player);
+  if (sel) {
+    data += "[o]";
+    sel.codes.forEach((code, i) => (data += `[k${i}${code}]`));
+    data += `[h${sel.hover}]`;
+  }
+  return data;
+}
+
+const lastData = new Map();
 const lastShown = new Map();
 
 export function updateHud(player) {
-  const c = casts.get(player.id);
-  const notice = currentNotice(player);
-  const lines = [];
-  if (notice) lines.push(notice);
+  const data = hudData(player);
+  if (lastData.get(player.id) !== data) {
+    lastData.set(player.id, data);
+    try { player.onScreenDisplay.setTitle(data, { fadeInDuration: 0, stayDuration: 20, fadeOutDuration: 0 }); } catch {}
+  }
 
-  // 魔術の行は杖を持っているときだけ
-  if (c || holdingWand(player)) {
-    const spirits = contractedSpirits(player);
-    let head = "";
-    if (c) {
-      head = c.phase === "cast"
-        ? `§6${c.def.name} §e詠唱 ${bar(c.tick / c.castTicks, 10, "§e", "§8")}  `
-        : `§6${c.def.name} §c溜め ${Math.round((c.chargeTicks / c.def.charge.maxTicks) * 100)}%  `;
-    } else {
-      head = `§6${getSelectedSpell(player).name}  `;
-    }
-    const gauges = spirits.map((id) => {
+  const lines = [];
+  const notice = currentNotice(player);
+  if (notice) lines.push(notice);
+  // 契約精霊の力は杖を持っているときだけ（契約していなければ出ない）
+  if (casts.has(player.id) || holdingWand(player)) {
+    const gauges = contractedSpirits(player).map((id) => {
       const s = SPIRITS[id];
       const v = getPower(player, id);
       return `${s.color}${s.name} ${bar(v / s.max, 16, s.color, "§8")} §f${Math.floor(v)}`;
     });
-    lines.push(head + gauges.join("  ")); // 契約していなければゲージは出ない
+    if (gauges.length) lines.push(gauges.join("  "));
   }
 
-  // 魔力ゲージはいちばん下（空腹ゲージのすぐ上）
-  lines.push(manaLine(player));
-
   const line = lines.join("\n");
-  const prev = lastShown.get(player.id);
-  if (prev === line && system.currentTick % 30 !== 0) return;
+  const prev = lastShown.get(player.id) ?? "";
+  if (prev === line && (line === "" || system.currentTick % 30 !== 0)) return;
   lastShown.set(player.id, line);
-  try { player.onScreenDisplay.setActionBar(line); } catch {}
+  try { player.onScreenDisplay.setActionBar(line || " "); } catch {}
 }
 
 export function forgetHud(playerId) {
+  lastData.delete(playerId);
   lastShown.delete(playerId);
 }
