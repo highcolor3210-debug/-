@@ -16,7 +16,14 @@
 - 一人称の腕はバニラの腕のまま（関節つきの腕は三人称だけ）。別のモデルは一人称では動かなかったため。
 - 関節つきの腕・脚は、マントと同じやり方（別のモデルを同じ骨の名前で重ねて、別の描画で出す）。
   上腕・ふとももは バニラと同じ骨の名前なので、バニラのアニメーションもそのまま効く。
-  前腕（forearm）とすね（shin）だけがこのアドオンの骨。
+  前腕・すねの骨には、スキンのモデルにもある重ね着の骨の名前（rightSleeve・leftSleeve・rightPants・leftPants）を使う。
+  ゲームはスキンのモデルにある骨の分しか動きを計算しないようで、新しい名前（rightForearm など）にした 0.2〜0.3 では
+  ひじ・ひざが曲がらなかった。重ね着の骨はバニラのアニメーションが動かさないので、ひじ・ひざに使える
+  （スキンのモデルの重ね着は隠しているので、それが肩・ももを中心に回っても見えない）。
+  スクリプトの中では分かりやすく forearm・shin と書き、書き出すときに LOWER_BONE の名前に置き換える。
+- 前腕・すねの骨の回転の中心（pivot）は、スキンのモデルの重ね着の骨と同じ肩・ももの付け根にしておき、
+  ひじ・ひざを中心に曲がるよう位置をずらす（joint_follow）。ゲームがこのモデルの pivot で計算し直しても、
+  スキンのモデルの計算結果をそのまま使っても、同じ見た目になるようにするため。
 - キャラクタークリエイターのスキン・マーケットプレイスのスキンは描き方が違うので、関節を使わずバニラのまま
   （v.motion_joints が 0）。
 - スキンの腕の太さ（スティーブ体型／アレックス体型）は、スキンのモデルの rightItem の高さで見分ける
@@ -88,11 +95,11 @@ def split_cubes(cube, cut):
 
 
 LIMBS = [
-    # 上の骨（バニラと同じ名前）, 重ね着の骨, 下の骨（このアドオン）, 関節の高さ
-    ("rightArm", "rightSleeve", "rightForearm"),
-    ("leftArm", "leftSleeve", "leftForearm"),
-    ("rightLeg", "rightPants", "rightShin"),
-    ("leftLeg", "leftPants", "leftShin"),
+    # 上の骨（バニラと同じ名前）, 重ね着の骨, 下の骨（前腕・すね。スキンのモデルの重ね着と同じ名前）
+    ("rightArm", "rightSleeve", "rightSleeve"),
+    ("leftArm", "leftSleeve", "leftSleeve"),
+    ("rightLeg", "rightPants", "rightPants"),
+    ("leftLeg", "leftPants", "leftPants"),
 ]
 
 
@@ -116,7 +123,8 @@ def build_geometry(variant):
             cubes_up.append(a)
             cubes_low.append(b)
         bones.append({"name": upper_name, "parent": up["parent"], "pivot": up["pivot"], "cubes": cubes_up})
-        bones.append({"name": lower_name, "parent": upper_name, "pivot": [up["pivot"][0], cut, up["pivot"][2]], "cubes": cubes_low})
+        # pivot はスキンのモデルの重ね着の骨と同じ（肩・ももの付け根）。ひじ・ひざで曲がるのは joint_follow で位置をずらして作る
+        bones.append({"name": lower_name, "parent": upper_name, "pivot": BONES[layer_name]["pivot"], "cubes": cubes_low})
     return {
             "description": {
                 "identifier": GEO_ID[variant],
@@ -415,6 +423,57 @@ def procedural_animations():
     }
 
 
+# スクリプトの中の前腕・すねの名前 → 書き出す骨の名前（スキンのモデルにある重ね着の骨）
+LOWER_BONE = {"rightforearm": "rightsleeve", "leftforearm": "leftsleeve", "rightshin": "rightpants", "leftshin": "leftpants"}
+
+
+def segment_length(upper, layer):
+    """付け根（重ね着の骨の pivot）から ひじ・ひざ までの長さ。両方の体型で同じであることを確かめる"""
+    lengths = {v: SKIN_GEO[v][layer]["pivot"][1] - joint_height(SKIN_GEO[v][upper]) for v in SKIN_GEO}
+    assert len(set(lengths.values())) == 1, lengths
+    return lengths["wide"]
+
+
+JOINT_LEN = {
+    "rightforearm": segment_length("rightArm", "rightSleeve"), "leftforearm": segment_length("leftArm", "leftSleeve"),
+    "rightshin": segment_length("rightLeg", "rightPants"), "leftshin": segment_length("leftLeg", "leftPants"),
+}
+
+
+def joint_follow(theta, length):
+    """付け根を中心に x 軸で theta 度（統合版の値）回したものを、その length 下の関節を中心に回したのと同じにする位置のずれ"""
+    if isinstance(theta, str):
+        c, s = f"math.cos({theta})", f"math.sin({theta})"
+        return [0.0, f"{length} * ({c} - 1.0)", f"{-length} * {s}"]
+    t = math.radians(theta)
+    return [0.0, round(length * (math.cos(t) - 1.0), 4), round(-length * math.sin(t), 4)]
+
+
+def add_joint_follow(bone, length):
+    """前腕・すねの回転（x のみ）に合わせて、位置のずれを足す"""
+    rot = bone.get("rotation")
+    if rot is None:
+        return
+    assert "position" not in bone
+    if isinstance(rot, dict):  # キーフレーム
+        out = {}
+        for t, k in rot.items():
+            x = (k["post"] if isinstance(k, dict) else k)[0]
+            v = joint_follow(x, length)
+            out[t] = {"post": v, "lerp_mode": k.get("lerp_mode", "linear")} if isinstance(k, dict) else v
+        bone["position"] = out
+    else:
+        bone["position"] = joint_follow(rot[0] if isinstance(rot[0], str) else float(rot[0]), length)
+
+
+def finish_bones(anim):
+    for name, length in JOINT_LEN.items():
+        if name in anim.get("bones", {}):
+            add_joint_follow(anim["bones"][name], length)
+    anim["bones"] = {LOWER_BONE.get(k, k): v for k, v in anim.get("bones", {}).items()}
+    return anim
+
+
 ANIMATIONS = {
     "animation.motion.walk": lambda: cycle_animation(WALK),
     "animation.motion.run": lambda: cycle_animation(RUN),
@@ -561,6 +620,7 @@ def main():
     anims = procedural_animations()
     for k, f in ANIMATIONS.items():
         anims[k] = f()
+    anims = {k: finish_bones(v) for k, v in anims.items()}
     write_json("animations/motion.player.animation.json", {"format_version": "1.8.0", "animations": anims})
     write_json("animation_controllers/motion.player.animation_controllers.json", build_animation_controllers())
     write_json("entity/player.entity.json", build_entity())
