@@ -1,6 +1,7 @@
 // 画面表示
 // ・魔力ゲージ／詠唱・溜めのバー／魔法の選択表示は RP の JSON UI（ui/hud_screen.json）で描く。
-//   ここでは「na_hud」で始まるデータ文字列をタイトルで送るだけ（そのタイトルは画面に出ない）。
+//   ここでは「na_hud」を含むデータ文字列をタイトルで送るだけ（そのタイトルは画面に出ない）。
+//   UI はいま出ているタイトルの文字列を読むので、タイトルは長く出しっぱなしにし、ときどき送り直す。
 //   記号の意味は tools/gen_hud_ui.py を参照
 // ・お知らせと契約精霊の力はアクションバー
 import { system } from "@minecraft/server";
@@ -11,13 +12,19 @@ import { selectorState } from "./Loadout.js";
 import { MANA, getMana } from "./Mana.js";
 
 const HUD_MARK = "na_hud";
-const MANA_TEXT_WIDTH = 7; // 先頭の「今/最大」の欄の文字数（UI 側は '%.7s' で読む）
+const TITLE_TICKS = 20 * 60 * 10; // データのタイトルを出しておく長さ（10分）
+const RESEND_TICKS = 100;         // 他のタイトルで上書きされても戻るよう、ときどき送り直す
 const MANA_ICONS = 10; // 空腹ゲージと同じ10個
 const BAR_SEGMENTS = 10;
 
 function bar(ratio, n, on, off) {
   const k = Math.round(Math.max(0, Math.min(1, ratio)) * n);
   return on + "|".repeat(k) + off + "|".repeat(n - k);
+}
+
+/** 数字を桁ごとの記号に（75 → "[n05][n17]"。0=一の位） */
+function digits(prefix, value) {
+  return [...String(Math.max(0, Math.floor(value)))].reverse().map((d, p) => `[${prefix}${p}${d}]`).join("");
 }
 
 /** "[s1][s2]…[sN]" のように 1..k の記号を並べる */
@@ -38,13 +45,12 @@ function showsSurvivalUi(player) {
 }
 
 function hudData(player) {
-  // 先頭は魔力の「今/最大」（幅をそろえるため後ろを空白で埋める）
-  const v = getMana(player);
-  let data = `${Math.floor(v)}/${MANA.max}`.padEnd(MANA_TEXT_WIDTH, " ").slice(0, MANA_TEXT_WIDTH) + HUD_MARK;
+  let data = HUD_MARK;
 
-  // 魔力：右端（0番）から埋まる。空腹ゲージと同じ並び
+  // 魔力：右端（0番）から埋まる。空腹ゲージと同じ並び。右下に「今/最大」
   if (showsSurvivalUi(player)) {
-    data += "[m]";
+    const v = getMana(player);
+    data += "[m]" + digits("n", v) + digits("x", MANA.max);
     const per = MANA.max / MANA_ICONS;
     for (let i = 0; i < MANA_ICONS; i++) {
       const rest = v - i * per;
@@ -77,9 +83,9 @@ const lastShown = new Map();
 
 export function updateHud(player) {
   const data = hudData(player);
-  if (lastData.get(player.id) !== data) {
+  if (lastData.get(player.id) !== data || system.currentTick % RESEND_TICKS === 0) {
     lastData.set(player.id, data);
-    try { player.onScreenDisplay.setTitle(data, { fadeInDuration: 0, stayDuration: 20, fadeOutDuration: 0 }); } catch {}
+    try { player.onScreenDisplay.setTitle(data, { fadeInDuration: 0, stayDuration: TITLE_TICKS, fadeOutDuration: 0 }); } catch {}
   }
 
   const lines = [];

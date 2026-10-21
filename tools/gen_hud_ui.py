@@ -1,14 +1,14 @@
 """HUD（ui/hud_screen.json）とその画像を作る
 使い方: python gen_hud_ui.py <RPフォルダ>
 
-スクリプトはタイトルに「na_hud」を含むデータ文字列を送る（Hud.js）。
-先頭の7文字は魔力の「今/最大」（例 "75/100 "）で、そのまま数字の表示に使う。
-ここで作る JSON UI がその文字列を覚えておき、含まれる記号で各画像の表示を切り替える。
-データのタイトルそのものは画面に出さない。
+スクリプトはタイトルに「na_hud」を含むデータ文字列を送る（Hud.js）。そのタイトルは画面に出さない。
+各画像はタイトルの文字列（#hud_title_text_string）を直接読み、含まれる記号で表示を切り替える。
 
 記号:
   [m]        魔力ゲージを出す（サバイバル・アドベンチャーのみ）
   [m{i}F/H]  魔力ゲージ i 個目が満タン／半分（i=0 が右端、空腹ゲージと同じ並び）
+  [n{p}{d}]  魔力の今の値の p 桁目（0=一の位）が数字 d
+  [x{p}{d}]  魔力の最大値の p 桁目が数字 d
   [b]        詠唱・溜めのバーを出す
   [s{n}]     詠唱の進み n/10 マス目まで
   [c{n}]     溜めの進み n/10 マス目まで
@@ -98,14 +98,35 @@ for code, (normal, hover) in SLOT_GLYPH.items():
     save(cell(normal), f"slot_{code}_0")
     save(cell(hover), f"slot_{code}_1")
 
+# 数字（3x5 の文字に影をつけて 4x6）。魔力の「今/最大」に使う
+FONT = {
+    "0": ["111", "101", "101", "101", "111"], "1": ["010", "110", "010", "010", "111"],
+    "2": ["111", "001", "111", "100", "111"], "3": ["111", "001", "111", "001", "111"],
+    "4": ["101", "101", "111", "001", "001"], "5": ["111", "100", "111", "001", "111"],
+    "6": ["111", "100", "111", "101", "111"], "7": ["111", "001", "010", "010", "010"],
+    "8": ["111", "101", "111", "101", "111"], "9": ["111", "101", "111", "001", "111"],
+    "slash": ["001", "001", "010", "100", "100"],
+}
+for ch, rows in FONT.items():
+    im = Image.new("RGBA", (4, 6), (0, 0, 0, 0))
+    for y, row in enumerate(rows):
+        for x, c in enumerate(row):
+            if c == "1":
+                im.putpixel((x + 1, y + 1), (40, 20, 56, 255))
+    for y, row in enumerate(rows):
+        for x, c in enumerate(row):
+            if c == "1":
+                im.putpixel((x, y), (226, 200, 255, 255))
+    save(im, f"digit_{ch}")
+
 # ---------------- JSON UI ----------------
-SRC = "na_hud_data"
+TITLE = "#hud_title_text_string"
 
 def has(token):
-    return f"(not ((#preserved_text - '{token}') = #preserved_text))"
+    return f"(not (({TITLE} - '{token}') = {TITLE}))"
 
 def lacks(token):
-    return f"((#preserved_text - '{token}') = #preserved_text)"
+    return f"(({TITLE} - '{token}') = {TITLE})"
 
 def image(name, texture, size, offset, cond, anchor_from="center", anchor_to="center", layer=2):
     return {name: {
@@ -116,74 +137,36 @@ def image(name, texture, size, offset, cond, anchor_from="center", anchor_to="ce
         "anchor_from": anchor_from,
         "anchor_to": anchor_to,
         "layer": layer,
-        "bindings": [{
-            "binding_type": "view",
-            "source_control_name": SRC,
-            "source_property_name": cond,
-            "target_property_name": "#visible",
-        }],
+        "bindings": [
+            {"binding_name": TITLE, "binding_type": "global"},
+            {"binding_type": "view", "source_property_name": cond, "target_property_name": "#visible"},
+        ],
     }}
 
-controls = [{
-    # タイトルの文字列を覚えておく（データのタイトルが来たときだけ書き換わる）
-    SRC: {
-        "type": "panel",
-        "size": [0, 0],
-        "bindings": [
-            {"binding_name": "#hud_title_text_string", "binding_type": "global"},
-            {
-                "binding_name": "#hud_title_text_string",
-                "binding_name_override": "#preserved_text",
-                "binding_condition": "visibility_changed",
-                "binding_type": "global",
-            },
-            {
-                "binding_type": "view",
-                "source_property_name": f"((not (#hud_title_text_string = #preserved_text)) and (not ((#hud_title_text_string - '{MARK}') = #hud_title_text_string)))",
-                "target_property_name": "#visible",
-            },
-        ],
-    }
-}]
+def mana_row(panel_width):
+    """空腹ゲージと同じパネルに入れる魔力ゲージと数字。空腹ゲージ（hunger_rend）は x=パネル幅、y=-40 に置かれ、
+    空気の泡はその1段上（y=-50）。魔力ゲージは泡と同じ段に、空腹ゲージと同じ間隔で右から並べる"""
+    out = []
+    pos = dict(anchor_from="bottom_left", anchor_to="bottom_left")
+    for i in range(10):
+        x, y = panel_width - 10 - 8 * i, -42
+        out.append(image(f"na_mana_bg_{i}", "mana_empty", [9, 9], [x, y], has("[m]"), layer=2, **pos))
+        out.append(image(f"na_mana_half_{i}", "mana_half", [9, 9], [x, y], has(f"[m{i}H]"), layer=3, **pos))
+        out.append(image(f"na_mana_full_{i}", "mana_full", [9, 9], [x, y], has(f"[m{i}F]"), layer=3, **pos))
+    # 「今/最大」：空腹ゲージの右下。今の値は右寄せ3桁、そのあとに / と最大値3桁
+    x0, y = panel_width + 3, -32
+    for p in range(3):  # 今の値（左から百・十・一の位）
+        for dgt in "0123456789":
+            out.append(image(f"na_num_n{p}_{dgt}", f"digit_{dgt}", [4, 6], [x0 + (2 - p) * 4, y], has(f"[n{p}{dgt}]"), layer=3, **pos))
+    out.append(image("na_num_slash", "digit_slash", [4, 6], [x0 + 12, y], has("[m]"), layer=3, **pos))
+    for p in range(3):  # 最大値（左詰め）
+        for dgt in "0123456789":
+            out.append(image(f"na_num_x{p}_{dgt}", f"digit_{dgt}", [4, 6], [x0 + 16 + (2 - p) * 4, y], has(f"[x{p}{dgt}]"), layer=3, **pos))
+    return out
 
-# 魔力ゲージ：空腹ゲージ（hunger_rend）の1段上（空気の泡と同じ段）。右端が 0 番
-MANA_Y = -48
-for i in range(10):
-    x, y = 80 - 8 * i, MANA_Y
-    pos = dict(anchor_from="bottom_middle", anchor_to="bottom_left")
-    controls.append(image(f"na_mana_bg_{i}", "mana_empty", [9, 9], [x, y], has("[m]"), layer=2, **pos))
-    controls.append(image(f"na_mana_half_{i}", "mana_half", [9, 9], [x, y], has(f"[m{i}H]"), layer=3, **pos))
-    controls.append(image(f"na_mana_full_{i}", "mana_full", [9, 9], [x, y], has(f"[m{i}F]"), layer=3, **pos))
+controls = []
 
-# 魔力の数字「今/最大」：ゲージの右下
-controls.append({"na_mana_text": {
-    "type": "label",
-    "text": "#text",
-    "color": [0.85, 0.7, 1.0],
-    "shadow": True,
-    "font_scale_factor": 0.8,
-    "anchor_from": "bottom_middle",
-    "anchor_to": "bottom_left",
-    "offset": [92, MANA_Y + 9],
-    "layer": 3,
-    "bindings": [
-        {
-            "binding_type": "view",
-            "source_control_name": SRC,
-            "source_property_name": "('%.7s' * #preserved_text)",
-            "target_property_name": "#text",
-        },
-        {
-            "binding_type": "view",
-            "source_control_name": SRC,
-            "source_property_name": has("[m]"),
-            "target_property_name": "#visible",
-        },
-    ],
-}})
-
-# 詠唱・溜めのバー：照準の少し下
-# 左端をそろえて置く（枠の左端が中央から -26、マスは枠の内側 1px から 5px おき）
+# 詠唱・溜めのバー：照準の少し下。左端をそろえて置く（枠の左端が中央から -26、マスは枠の内側 1px から 5px おき）
 left = dict(anchor_from="center", anchor_to="left_middle")
 controls.append(image("na_bar_frame", "bar_frame", [52, 7], [-26, 14], has("[b]"), layer=2, **left))
 for n in range(1, SEG + 1):
@@ -199,28 +182,24 @@ for i, (x, y) in enumerate(SLOT_POS):
             cond = f"({has('[o]')} and {has(f'[k{i}{code}]')} and {has(f'[h{i}]') if hover else lacks(f'[h{i}]')})"
             controls.append(image(f"na_slot_{i}_{code}_{hover}", f"slot_{code}_{hover}", [32, 32], [x, y], cond, layer=4))
 
+def insert(controls_to_add):
+    return {"modifications": [{"array_name": "controls", "operation": "insert_back", "value": controls_to_add}]}
+
 ui = {
     "namespace": "hud",
     "na_hud": {"type": "panel", "size": ["100%", "100%"], "layer": 20, "controls": controls},
-    "root_panel": {
-        "modifications": [{
-            "array_name": "controls",
-            "operation": "insert_back",
-            "value": [{"na_hud@hud.na_hud": {}}],
-        }]
-    },
+    "root_panel": insert([{"na_hud@hud.na_hud": {}}]),
+    # 魔力ゲージは空腹ゲージと同じパネルに入れる（PC 用 180 幅／タッチ用 200 幅）
+    "centered_gui_elements_at_bottom_middle": insert(mana_row(180)),
+    "centered_gui_elements_at_bottom_middle_touch": insert(mana_row(200)),
     # データのタイトル（na_hud を含む）は画面に出さない
     "hud_title_text": {
         "bindings": [
-            {"binding_name": "#hud_title_text_string", "binding_type": "global"},
-            {
-                "binding_type": "view",
-                "source_property_name": f"((#hud_title_text_string - '{MARK}') = #hud_title_text_string)",
-                "target_property_name": "#visible",
-            },
+            {"binding_name": TITLE, "binding_type": "global"},
+            {"binding_type": "view", "source_property_name": lacks(MARK), "target_property_name": "#visible"},
         ]
     },
 }
 with open(os.path.join(RP, "ui/hud_screen.json"), "w", encoding="utf-8") as f:
     json.dump(ui, f, ensure_ascii=False, indent=2)
-print("ok", len(controls), "controls")
+print("ok", len(controls) + 2 * len(mana_row(180)), "controls")

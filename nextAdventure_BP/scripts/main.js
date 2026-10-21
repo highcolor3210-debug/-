@@ -14,8 +14,11 @@ import { Fx } from "./magic/SpellEffects.js";
 import { tickMana, saveMana, forgetMana } from "./magic/Mana.js";
 import { DEBUG_BOOK_ID, openDebugBook, forgetDebug } from "./magic/Debug.js";
 
-const lastSwing = new Map(); // playerId -> tick（押しっぱなしで連続して振ったときの二重発動よけ）
-const SWING_GAP_TICKS = 3;
+// 「壊す」ボタンの押し具合。押しっぱなしの間はゲーム側が腕を振り続けるので、
+// 振りが続いていれば押している、途切れたら離した、とみなす
+// （1回クリックしただけのときは振りが続かないので、押しっぱなしとは数えない）
+const presses = new Map(); // playerId -> { last: 最後に振ったtick, repeated: 振りが続いたか, readyWhileHeld: 押したまま詠唱が終わったか }
+const HOLD_GAP_TICKS = 10;
 // 「壊す」ボタン以外の腕振り（置く・使う・投げる など）では発動しない
 const NOT_ATTACK_SWINGS = new Set(["Build", "Use", "Interact", "DropItem", "ThrowItem"]);
 
@@ -25,15 +28,21 @@ system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
   blockComponentRegistry.registerCustomComponent("na:earth_wall", earthWallBlockComponent);
 });
 
-// 杖で「壊す」ボタン → 詠唱開始。詠唱が終わっていれば発動
-// （腕はゲーム側が振るので、一人称でも三人称でも振りが見える）
+// 杖で「壊す」ボタン（腕はゲーム側が振るので、一人称でも三人称でも振りが見える）
+// ・押す → 詠唱開始。詠唱が終わっていれば、押した瞬間に発動
+// ・押したまま詠唱を終える → 押している間は溜まり、離すと発動
 world.afterEvents.playerSwingStart.subscribe((ev) => {
   if (ev.heldItemStack?.typeId !== WAND_ID) return;
   if (ev.swingSource !== undefined && NOT_ATTACK_SWINGS.has(ev.swingSource)) return;
   const player = ev.player;
   const now = system.currentTick;
-  if (now - (lastSwing.get(player.id) ?? -999) < SWING_GAP_TICKS) return;
-  lastSwing.set(player.id, now);
+  const st = presses.get(player.id);
+  if (st && now - st.last <= HOLD_GAP_TICKS) {
+    st.last = now; // 押しっぱなしで振り続けている
+    st.repeated = true;
+    return;
+  }
+  presses.set(player.id, { last: now, repeated: false, readyWhileHeld: false });
   system.run(() => {
     if (!player.isValid) return;
     if (isCasting(player)) fireCast(player);
@@ -92,6 +101,8 @@ system.runInterval(() => {
 
   const now = system.currentTick;
   for (const player of world.getAllPlayers()) {
+    tickPress(player, now);
+
     // 魔法の選択中（杖を持ち替えたら閉じる）
     if (isSelecting(player)) tickSelector(player, holdingWand(player));
 
@@ -105,6 +116,20 @@ system.runInterval(() => {
   }
 }, 1);
 
+/** 押したまま詠唱が終わったか見ておき、離したら発動する */
+function tickPress(player, now) {
+  const st = presses.get(player.id);
+  if (!st) return;
+  const c = casts.get(player.id);
+  const held = now - st.last <= HOLD_GAP_TICKS;
+  if (held) {
+    if (st.repeated && c && c.phase !== "cast") st.readyWhileHeld = true;
+    return;
+  }
+  presses.delete(player.id);
+  if (st.readyWhileHeld && c) fireCast(player);
+}
+
 // ---- 後片付け ----
 world.afterEvents.playerLeave.subscribe((ev) => {
   const id = ev.playerId;
@@ -113,7 +138,7 @@ world.afterEvents.playerLeave.subscribe((ev) => {
     casts.delete(id);
     killSpell(c.spell);
   }
-  lastSwing.delete(id);
+  presses.delete(id);
   forgetPlayer(id);
   forgetLoadout(id);
   forgetHud(id);

@@ -1,13 +1,13 @@
 {
   "format_version": 2,
   "header": {
-    "name": "nextAdventure Ver.0.4.6 [RP]",
+    "name": "nextAdventure Ver.0.4.7 [RP]",
     "description": "剣と魔法の異世界ファンタジー冒険譚 — 魔法編 その4.5：壊すボタンで発動・置くボタンで選択",
     "uuid": "cfdb4662-3288-463a-83c3-6cb4d08c048f",
     "version": [
       0,
       4,
-      6
+      7
     ],
     "min_engine_version": [
       1,
@@ -22,7 +22,7 @@
       "version": [
         0,
         4,
-        6
+        7
       ]
     }
   ]
