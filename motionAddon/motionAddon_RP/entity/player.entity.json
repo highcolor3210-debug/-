@@ -15,7 +15,8 @@
       },
       "geometry": {
         "default": "geometry.humanoid.custom",
-        "cape": "geometry.cape"
+        "cape": "geometry.cape",
+        "motion_limbs": "geometry.motion.limbs"
       },
       "scripts": {
         "scale": "0.9375",
@@ -29,7 +30,8 @@
           "v.motion_vy = 0.0;",
           "v.motion_was_ground = 1.0;",
           "v.motion_air_start = 0.0;",
-          "v.motion_land_time = -10.0;"
+          "v.motion_land_time = -10.0;",
+          "v.motion_last_life = 0.0;"
         ],
         "pre_animation": [
           "variable.helmet_layer_visible = !query.has_head_gear;",
@@ -43,39 +45,41 @@
           "variable.map_angle = math.clamp(1 - variable.player_x_rotation / 45.1, 0.0, 1.0);",
           "variable.item_use_normalized = query.main_hand_item_use_duration / query.main_hand_item_max_duration;",
           "variable.riding_y_offset = query.is_riding_any_entity_of_type('minecraft:minecart', 'minecraft:boat', 'minecraft:chest_boat', 'minecraft:strider') ? -3.0 : 0.0;",
+          "v.motion_joints = !q.is_persona_or_premium_skin;",
           "v.motion_dt = math.clamp(q.delta_time, 0.0, 0.1);",
           "v.motion_follow = math.min(1.0, v.motion_dt * 8.0);",
           "v.motion_phase = q.modified_distance_moved * 38.17;",
-          "v.motion_speed = math.clamp(q.modified_move_speed, 0.0, 1.0);",
+          "v.motion_move = math.clamp(q.modified_move_speed * 1.5, 0.0, 1.0);",
           "v.motion_ground = q.is_on_ground || q.is_riding || q.is_swimming || q.is_gliding;",
           "v.motion_sprint = math.lerp(v.motion_sprint, (q.is_sprinting && v.motion_ground && !q.is_swimming) ? 1.0 : 0.0, v.motion_follow);",
           "v.motion_air = math.lerp(v.motion_air, v.motion_ground ? 0.0 : 1.0, math.min(1.0, v.motion_dt * 10.0));",
           "v.motion_vy = math.lerp(v.motion_vy, v.motion_ground ? 0.0 : math.clamp(q.vertical_speed / 10.0, -1.0, 1.0), v.motion_follow);",
+          "v.motion_tuck = math.clamp(0.5 + v.motion_vy, 0.0, 1.0);",
           "v.motion_air_start = (!v.motion_ground && v.motion_was_ground) ? q.life_time : v.motion_air_start;",
           "v.motion_land_time = (v.motion_ground && !v.motion_was_ground && (q.life_time - v.motion_air_start) > 0.3) ? q.life_time : v.motion_land_time;",
           "v.motion_was_ground = v.motion_ground;",
-          "v.motion_land = math.clamp(1.0 - (q.life_time - v.motion_land_time) / 0.3, 0.0, 1.0);",
-          "v.motion_sword = q.equipped_item_any_tag('slot.weapon.mainhand', 'minecraft:is_sword');",
-          "v.motion_slash = math.clamp(variable.attack_time, 0.0, 1.0);",
-          "v.motion_slash_env = math.sin(v.motion_slash * 180.0);",
-          "v.motion_slash = v.motion_slash * v.motion_slash * (3.0 - 2.0 * v.motion_slash);"
+          "v.motion_land = math.clamp(1.0 - (q.life_time - v.motion_land_time) / 0.35, 0.0, 1.0);",
+          "v.motion_sword = q.equipped_item_any_tag('slot.weapon.mainhand', 'minecraft:is_sword');"
         ],
         "animate": [
           "root",
           {
-            "motion.third_person.walk": "!variable.is_first_person && !variable.is_paperdoll && !variable.map_face_icon && !q.is_sleeping && !q.is_riding && variable.swim_amount <= 0.0 && !q.is_crawling"
+            "motion.cancel_vanilla_swing": "!variable.is_first_person && !variable.is_paperdoll && !variable.map_face_icon && !q.is_sleeping && !q.is_riding && variable.swim_amount <= 0.0 && !q.is_crawling && !q.is_gliding"
           },
           {
-            "motion.third_person.sprint": "!variable.is_first_person && !variable.is_paperdoll && !variable.map_face_icon && !q.is_sleeping && !q.is_riding && variable.swim_amount <= 0.0 && !q.is_crawling && v.motion_sprint > 0.01"
+            "motion.walk": "(!variable.is_first_person && !variable.is_paperdoll && !variable.map_face_icon && !q.is_sleeping && !q.is_riding && variable.swim_amount <= 0.0 && !q.is_crawling && !q.is_gliding) ? v.motion_move * (1.0 - v.motion_sprint) * (1.0 - v.motion_air) : 0.0"
           },
           {
-            "motion.third_person.air": "!variable.is_first_person && !variable.is_paperdoll && !variable.map_face_icon && !q.is_sleeping && !q.is_riding && variable.swim_amount <= 0.0 && !q.is_crawling && (v.motion_air > 0.01 || v.motion_land > 0.0)"
+            "motion.run": "(!variable.is_first_person && !variable.is_paperdoll && !variable.map_face_icon && !q.is_sleeping && !q.is_riding && variable.swim_amount <= 0.0 && !q.is_crawling && !q.is_gliding) ? v.motion_move * v.motion_sprint * (1.0 - v.motion_air) : 0.0"
           },
           {
-            "motion.third_person.sword_slash": "!variable.is_first_person && !variable.is_paperdoll && !variable.map_face_icon && !q.is_sleeping && !q.is_riding && variable.swim_amount <= 0.0 && !q.is_crawling && v.motion_sword && variable.attack_time > 0.0"
+            "motion.air": "!variable.is_first_person && !variable.is_paperdoll && !variable.map_face_icon && !q.is_sleeping && !q.is_riding && variable.swim_amount <= 0.0 && !q.is_crawling && !q.is_gliding && (v.motion_air > 0.01 || v.motion_land > 0.0)"
           },
           {
-            "motion.third_person.sword_slash_arm": "!variable.is_first_person && !variable.is_paperdoll && !variable.map_face_icon && !q.is_sleeping && !q.is_riding && variable.swim_amount <= 0.0 && !q.is_crawling && v.motion_sword && variable.attack_time > 0.0"
+            "motion.sword_slash": "!variable.is_first_person && !variable.is_paperdoll && !variable.map_face_icon && !q.is_sleeping && !q.is_riding && variable.swim_amount <= 0.0 && !q.is_crawling && !q.is_gliding && v.motion_sword && variable.attack_time > 0.0"
+          },
+          {
+            "motion.sword_slash_body": "!variable.is_first_person && !variable.is_paperdoll && !variable.map_face_icon && !q.is_sleeping && !q.is_riding && variable.swim_amount <= 0.0 && !q.is_crawling && !q.is_gliding && v.motion_sword && variable.attack_time > 0.0"
           },
           {
             "motion.first_person.move": "variable.is_first_person && !variable.is_paperdoll"
@@ -167,11 +171,12 @@
         "third_person_melee_spear_hold": "animation.humanoid.melee_spear_hold",
         "third_person_melee_spear_attack": "animation.player.melee_spear_attack",
         "third_person_melee_spear_controller": "controller.animation.player.melee_spear",
-        "motion.third_person.walk": "animation.motion.third_person.walk",
-        "motion.third_person.sprint": "animation.motion.third_person.sprint",
-        "motion.third_person.air": "animation.motion.third_person.air",
-        "motion.third_person.sword_slash": "animation.motion.third_person.sword_slash",
-        "motion.third_person.sword_slash_arm": "animation.motion.third_person.sword_slash_arm",
+        "motion.cancel_vanilla_swing": "animation.motion.cancel_vanilla_swing",
+        "motion.walk": "animation.motion.walk",
+        "motion.run": "animation.motion.run",
+        "motion.air": "animation.motion.air",
+        "motion.sword_slash": "animation.motion.sword_slash",
+        "motion.sword_slash_body": "animation.motion.sword_slash_body",
         "motion.first_person.move": "animation.motion.first_person.move",
         "motion.first_person.sword_slash": "animation.motion.first_person.sword_slash"
       },
@@ -183,10 +188,16 @@
           "controller.render.player.third_person_spectator": "!variable.is_first_person && !variable.map_face_icon && query.is_spectator"
         },
         {
-          "controller.render.player.first_person": "variable.is_first_person && !query.is_spectator"
+          "controller.render.motion.player.first_person": "variable.is_first_person && !query.is_spectator"
         },
         {
-          "controller.render.player.third_person": "!variable.is_first_person && !variable.map_face_icon && !query.is_spectator"
+          "controller.render.motion.limbs.first_person": "variable.is_first_person && !query.is_spectator"
+        },
+        {
+          "controller.render.motion.player.third_person": "!variable.is_first_person && !variable.map_face_icon && !query.is_spectator"
+        },
+        {
+          "controller.render.motion.limbs.third_person": "!variable.is_first_person && !variable.map_face_icon && !query.is_spectator"
         },
         {
           "controller.render.player.map": "variable.map_face_icon"

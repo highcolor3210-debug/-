@@ -4,20 +4,70 @@
 <body>
 <canvas id="grid"></canvas>
 <script>
-// プレビュー用の描画。window.setup(bones) で人型を作り、window.drawSheet(...) で何コマかを1枚の画像に並べる
+// プレビュー用の描画
+//   window.setup(models, skinDataUrl)：スキン（バニラの人型）と関節つきの腕・脚を、スキンの絵で作る
+//   window.drawSheet(...)：何コマかを1枚の画像に並べる
 // 座標の向き：Blockbench と同じ（体の正面は -Z、統合版のファイルの x はここでは反転）
-let renderer, scene, model;
-const groups = {};
+let renderer, scene;
+const skel = { skin: {}, limbs: {} }; // 骨の名前（小文字） → THREE.Group
 const SIZE = 260;
-const COLORS = { head: 0xe0b48a, hat: 0xe0b48a, body: 0x3aa6a6, rightarm: 0xd9a77f, leftarm: 0xd9a77f, rightleg: 0x3b4fa0, leftleg: 0x3b4fa0 };
-const SHOW = new Set(["head", "body", "rightarm", "leftarm", "rightleg", "leftleg", "rightitem"]);
+const SKIN_LIMBS = new Set(["rightarm", "rightsleeve", "leftarm", "leftsleeve", "rightleg", "rightpants", "leftleg", "leftpants"]);
 
-window.setup = (bones) => {
+function boxUv(c) {
+  // 箱UV → 面ごと（tools/build.py の face_uvs と同じ並び）
+  const [u0, v0] = c.uv, [w, h, d] = c.size;
+  return {
+    east: { uv: [u0, v0 + d], uv_size: [d, h] }, north: { uv: [u0 + d, v0 + d], uv_size: [w, h] },
+    west: { uv: [u0 + d + w, v0 + d], uv_size: [d, h] }, south: { uv: [u0 + 2 * d + w, v0 + d], uv_size: [w, h] },
+    up: { uv: [u0 + d, v0], uv_size: [w, d] }, down: { uv: [u0 + d + w, v0 + d], uv_size: [w, -d] },
+  };
+}
+
+function cubeMesh(c, material) {
+  const inf = c.inflate ?? 0;
+  const [sx, sy, sz] = c.size;
+  const geo = new THREE.BoxGeometry(sx + inf * 2, sy + inf * 2, sz + inf * 2);
+  const faces = Array.isArray(c.uv) ? boxUv(c) : c.uv;
+  // BoxGeometry の面の順：+x, -x, +y, -y, +z, -z。x を反転しているので +x が統合版の west
+  const order = ["west", "east", "up", "down", "south", "north"];
+  const uv = geo.attributes.uv;
+  order.forEach((name, f) => {
+    const fc = faces[name];
+    const [u, v] = fc.uv, [w, h] = fc.uv_size;
+    const pts = [[u, v], [u + w, v], [u, v + h], [u + w, v + h]]; // 左上・右上・左下・右下
+    pts.forEach(([pu, pv], k) => uv.setXY(f * 4 + k, pu / 64, 1 - pv / 64));
+  });
+  uv.needsUpdate = true;
+  return new THREE.Mesh(geo, material);
+}
+
+function buildSkeleton(bones, target, material, root) {
+  const byName = {};
+  for (const b of bones) byName[b.name.toLowerCase()] = b;
+  const pivotOf = (b) => (b ? [-(b.pivot?.[0] ?? 0), b.pivot?.[1] ?? 0, b.pivot?.[2] ?? 0] : [0, 0, 0]);
+  for (const b of bones) target[b.name.toLowerCase()] = Object.assign(new THREE.Group(), { name: b.name.toLowerCase() });
+  for (const b of bones) {
+    const g = target[b.name.toLowerCase()];
+    const parent = b.parent ? byName[b.parent.toLowerCase()] : null;
+    const p = pivotOf(b), pp = pivotOf(parent);
+    g.userData.rest = new THREE.Vector3(p[0] - pp[0], p[1] - pp[1], p[2] - pp[2]);
+    g.position.copy(g.userData.rest);
+    (parent ? target[parent.name.toLowerCase()] : root).add(g);
+    for (const c of b.cubes ?? []) {
+      const mesh = cubeMesh(c, material);
+      const [sx, sy, sz] = c.size;
+      mesh.position.set(-(c.origin[0] + sx / 2) - p[0], c.origin[1] + sy / 2 - p[1], c.origin[2] + sz / 2 - p[2]);
+      g.add(mesh);
+    }
+  }
+}
+
+window.setup = async (models, skinUrl) => {
   renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   renderer.setSize(SIZE, SIZE);
   scene = new THREE.Scene();
-  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-  const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.7);
   sun.position.set(-30, 60, -40);
   scene.add(sun);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshLambertMaterial({ color: 0x5f8f3f }));
@@ -25,75 +75,80 @@ window.setup = (bones) => {
   floor.name = "floor";
   scene.add(floor);
 
-  model = new THREE.Group();
-  scene.add(model);
-  const byName = {};
-  for (const b of bones) byName[b.name.toLowerCase()] = b;
-  const pivotOf = (b) => (b ? [-(b.pivot?.[0] ?? 0), b.pivot?.[1] ?? 0, b.pivot?.[2] ?? 0] : [0, 0, 0]);
-  for (const b of bones) {
-    const g = new THREE.Group();
-    g.name = b.name.toLowerCase();
-    groups[g.name] = g;
+  const img = new Image();
+  img.src = skinUrl;
+  await img.decode();
+  const tex = new THREE.Texture(img);
+  tex.magFilter = tex.minFilter = THREE.NearestFilter;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  const mat = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide });
+
+  for (const key of ["skin", "limbs"]) {
+    const root = new THREE.Group();
+    root.name = key;
+    scene.add(root);
+    buildSkeleton(models[key], skel[key], mat, root);
   }
-  for (const b of bones) {
-    const g = groups[b.name.toLowerCase()];
-    const parent = b.parent ? byName[b.parent.toLowerCase()] : null;
-    const p = pivotOf(b), pp = pivotOf(parent);
-    g.userData.rest = new THREE.Vector3(p[0] - pp[0], p[1] - pp[1], p[2] - pp[2]);
-    g.position.copy(g.userData.rest);
-    (parent ? groups[parent.name.toLowerCase()] : model).add(g);
-    if (!SHOW.has(g.name)) continue;
-    for (const c of b.cubes ?? []) {
-      if (c.inflate) continue;
-      const [sx, sy, sz] = c.size;
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), new THREE.MeshLambertMaterial({ color: COLORS[g.name] ?? 0xcccccc }));
-      // 統合版の origin は最小の角。x を反転して中心へ
-      const cx = -(c.origin[0] + sx / 2), cy = c.origin[1] + sy / 2, cz = c.origin[2] + sz / 2;
-      mesh.position.set(cx - p[0], cy - p[1], cz - p[2]);
-      g.add(mesh);
-      if (g.name === "head") {
-        // 顔の向きがわかるよう、正面（-Z）に目
-        for (const ex of [-2, 2]) {
-          const eye = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 0.4), new THREE.MeshBasicMaterial({ color: 0x222222 }));
-          eye.position.set(cx - p[0] + ex, cy - p[1] + 0.5, cz - p[2] - sz / 2 - 0.2);
-          g.add(eye);
-        }
-      }
-    }
-  }
-  // 手に持つ剣（右手の rightitem に付ける。刃は腕を下ろしたとき前へ向く）
+  // 手に持つ剣（スキンのモデルの rightitem に付く＝バニラと同じ）。刃は腕を下ろしたとき前
   const sword = new THREE.Group();
-  const blade = new THREE.Mesh(new THREE.BoxGeometry(1, 1.6, 11), new THREE.MeshLambertMaterial({ color: 0xd8e4f0 }));
-  blade.position.set(0, 0, -6.5);
-  const hilt = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 3), new THREE.MeshLambertMaterial({ color: 0x6b4423 }));
-  hilt.position.set(0, 0, 1);
-  const guard = new THREE.Mesh(new THREE.BoxGeometry(1.2, 4, 1), new THREE.MeshLambertMaterial({ color: 0xc9a227 }));
-  guard.position.set(0, 0, -0.8);
-  sword.add(blade, hilt, guard);
-  groups.rightitem?.add(sword);
+  sword.name = "sword";
+  const part = (size, pos, color) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(...size), new THREE.MeshLambertMaterial({ color }));
+    m.position.set(...pos);
+    sword.add(m);
+  };
+  part([1, 1.6, 11], [0, 0, -6.5], 0xd8e4f0);
+  part([1.2, 1.2, 3], [0, 0, 1], 0x6b4423);
+  part([1.2, 4, 1], [0, 0, -0.8], 0xc9a227);
+  skel.skin.rightitem.add(sword);
 };
 
 function applyPose(bones) {
-  for (const g of Object.values(groups)) {
-    g.position.copy(g.userData.rest);
-    g.rotation.set(0, 0, 0);
+  for (const s of Object.values(skel)) {
+    for (const g of Object.values(s)) {
+      g.position.copy(g.userData.rest);
+      g.rotation.set(0, 0, 0);
+    }
+    for (const [name, b] of Object.entries(bones)) {
+      const g = s[name];
+      if (!g) continue;
+      const r = b.rot.map((d) => (d * Math.PI) / 180);
+      // 統合版の回転 [x, y, z] → ここでは [-x, -y, z]、順番は ZYX（Blockbench と同じ）
+      g.rotation.set(-r[0], -r[1], r[2], "ZYX");
+      g.position.x += -b.pos[0];
+      g.position.y += b.pos[1];
+      g.position.z += b.pos[2];
+    }
   }
-  for (const [name, b] of Object.entries(bones)) {
-    const g = groups[name];
-    if (!g) continue;
-    const r = b.rot.map((d) => (d * Math.PI) / 180);
-    // 統合版の回転 [x, y, z] → ここでは [-x, -y, z]、順番は ZYX（Blockbench と同じ）
-    g.rotation.set(-r[0], -r[1], r[2], "ZYX");
-    g.position.x += -b.pos[0];
-    g.position.y += b.pos[1];
-    g.position.z += b.pos[2];
+}
+
+function showMeshes(group, on) {
+  for (const m of group.children) if (m.isMesh) m.visible = on;
+}
+
+function setVisibility(fp, holding, joints) {
+  // 三人称：スキンは頭・体（関節を使うときは腕・脚を隠す）、関節つきの腕・脚を出す
+  // 一人称：何も持っていないときだけ右腕。持っているときは持ち物だけ
+  for (const [name, g] of Object.entries(skel.skin)) {
+    let on = !fp && !(joints && SKIN_LIMBS.has(name));
+    if (fp && !joints && (name === "rightarm" || name === "rightsleeve")) on = !holding;
+    showMeshes(g, on);
   }
+  for (const [name, g] of Object.entries(skel.limbs)) {
+    let on = joints && !fp;
+    if (fp) on = joints && !holding && (name === "rightarm" || name === "rightforearm");
+    showMeshes(g, on);
+  }
+  scene.getObjectByName("sword").visible = holding;
+  scene.getObjectByName("floor").visible = !fp;
 }
 
 function camera(view) {
   const cam = new THREE.PerspectiveCamera(view === "fp" ? 70 : 40, 1, 0.1, 500);
   if (view === "front") { cam.position.set(30, 26, -52); cam.lookAt(0, 15, 0); }
   if (view === "side") { cam.position.set(62, 18, 0); cam.lookAt(0, 15, 0); }
+  if (view === "back") { cam.position.set(-24, 30, 50); cam.lookAt(0, 15, 0); }
   // 一人称：バニラは頭を 180° 回し、+Z 側を見る作りになっている
   if (view === "fp") { cam.position.set(0, 24, -1); cam.lookAt(0, 19, 20); }
   return cam;
@@ -108,11 +163,7 @@ window.drawSheet = (rows, cols, cells, title) => {
   ctx.fillStyle = "#fff"; ctx.font = "16px sans-serif"; ctx.fillText(title, 8, 19);
   cells.forEach((cell, i) => {
     const fp = cell.view === "fp";
-    // 一人称は右腕と持ち物だけ（体の骨は腕の親なので、骨ではなく箱だけ隠す）
-    for (const name of ["head", "body", "leftarm", "rightleg", "leftleg"]) {
-      for (const m of groups[name]?.children ?? []) if (m.isMesh) m.visible = !fp;
-    }
-    scene.getObjectByName("floor").visible = !fp;
+    setVisibility(fp, cell.holding, cell.joints);
     scene.background = new THREE.Color(fp ? 0x8fb8e8 : 0x9cc3e6);
     applyPose(cell.bones);
     renderer.render(scene, camera(cell.view));
