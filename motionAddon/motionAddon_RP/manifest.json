@@ -1,13 +1,13 @@
 {
   "format_version": 2,
   "header": {
-    "name": "Motion Addon",
-    "description": "プレイヤーの動きを作り直すリソースパック（ひじ・ひざつき）",
+    "name": "Motion Addon v0.3.4",
+    "description": "Ver.0.3.4：プレイヤーの動きを作り直すリソースパック（ひじ・ひざつき）",
     "uuid": "14fbe246-15d8-4c17-819c-ae0aa627a725",
     "version": [
       0,
       3,
-      3
+      4
     ],
     "min_engine_version": [
       1,
@@ -22,7 +22,7 @@
       "version": [
         0,
         3,
-        3
+        4
       ]
     }
   ]
