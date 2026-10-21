@@ -116,7 +116,7 @@ for code, im in glyphs.items():
     sheet.alpha_composite(im, ((code % 16) * 16, (code // 16) * 16))
 # 0x0F：見えない間隔用（幅を持たせるため両端にほぼ透明な点。gen_assets4.py と同じ作り）
 for x in (0, 15):
-    sheet.putpixel((15 * 16 + x, 15), (0, 0, 0, 6))
+    sheet.putpixel((15 * 16 + x, 15), (0, 0, 0, 24))
 
 os.makedirs(os.path.join(RP, "font"), exist_ok=True)
 sheet.save(os.path.join(RP, "font/glyph_E1.png"))

@@ -9,8 +9,8 @@ RP = sys.argv[1]
 PREVIEW = sys.argv[2]
 
 # 見えない間隔のグリフ：幅を持たせるため、左右の端に「ほぼ透明」な点を置く
-# （透明度 1 だと幅ゼロ扱いになる環境があったので、目に見えない程度に少しだけ濃くする）
-GHOST = (0, 0, 0, 6)
+# （透明度 1 だと幅ゼロ扱いになったので、目に見えない程度に少しだけ濃くする）
+GHOST = (0, 0, 0, 24)
 
 def spacer(width):
     im = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
@@ -112,6 +112,21 @@ glyphs = {
 }
 for n in range(10):
     glyphs[0x30 + n] = digit(n)
+
+# 十字のまんなかの飾り（0x06）：金色の小さなひし形。幅はアイコン1つ分
+def center_mark():
+    im = spacer(16)
+    gold, dark = (255, 214, 90, 255), (120, 84, 20, 255)
+    for y in range(16):
+        for x in range(16):
+            dist = abs(x - 7.5) + abs(y - 7.5)
+            if dist <= 3.0:
+                im.putpixel((x, y), gold)
+            elif dist <= 4.0:
+                im.putpixel((x, y), dark)
+    return im
+
+glyphs[0x06] = center_mark()
 
 # 選択表示（gen_assets3.py が作る glyph_E1）に書き足す。見えない間隔 0x0F も同じ作りに直す
 e1_path = os.path.join(RP, "font/glyph_E1.png")

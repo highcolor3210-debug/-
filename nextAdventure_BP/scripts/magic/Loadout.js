@@ -22,7 +22,7 @@ const ICON = {
   fire_bullet: ["", ""],
   earth_wall: ["", ""],
 };
-const GAP = ""; // 見えない間隔（アイコン1つ分）
+const CENTER = "\uE106"; // 十字のまんなかの飾り（左右のマスの間を空ける）
 
 const KEY_LOADOUT = "na:loadout";
 const KEY_SELECTED = "na:selected_slot";
@@ -139,16 +139,17 @@ function draw(player) {
   st.lastDrawn = system.currentTick;
   const l = getLoadout(player);
   const icon = (i) => (ICON[l[i]] ?? ICON.empty)[i === st.hover ? 1 : 0];
-  // 行ごとに中央揃えになるので、どの行も同じ幅（3マス）にそろえる
+  // 行ごとに中央揃えになるので、上下の行はアイコン1つだけで真ん中にそろう。
+  // アイコンは文字の行より背が高く、詰めると重なるので、行の間に空行をはさむ
   const lines = [
-    GAP + icon(0) + GAP,
-    icon(3) + GAP + icon(1),
-    GAP + icon(2) + GAP,
+    icon(0),
+    icon(3) + CENTER + icon(1),
+    icon(2),
   ];
   const name = l[st.hover] ? SPELLS[l[st.hover]] : undefined;
   const sub = name ? `§6${name.name} §7— ${attrName(name.attribute)}・${name.category === "simple" ? "単純魔術" : "複雑魔術"}` : "§7（空き）";
   try {
-    player.onScreenDisplay.setTitle(lines.join("\n"), {
+    player.onScreenDisplay.setTitle(lines.join("\n \n"), {
       fadeInDuration: 0,
       stayDuration: 20,
       fadeOutDuration: 0,
