@@ -50,9 +50,12 @@ world.afterEvents.itemUse.subscribe((ev) => {
   openDebugBook(ev.source);
 });
 
-// バニラの腕振り（壊すボタンなど）を記録して、二重に振らないようにする
+// バニラの腕振り（壊すボタン・叩く）を記録して、二重に振らないようにする
+// 杖を離したときの振りなどは数えない（数えると一人称で魔法の振りが出なくなる）
+const VANILLA_SWINGS = new Set(["Attack", "Mine"]);
 world.afterEvents.playerSwingStart.subscribe((ev) => {
   if (ev.heldItemStack?.typeId !== WAND_ID) return;
+  if (ev.swingSource !== undefined && !VANILLA_SWINGS.has(ev.swingSource)) return;
   lastSwing.set(ev.player.id, system.currentTick);
 });
 

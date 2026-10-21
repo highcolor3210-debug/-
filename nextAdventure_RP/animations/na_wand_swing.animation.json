@@ -6,14 +6,14 @@
       "bones": {
         "rightArm": {
           "rotation": [
-            "(variable.is_first_person ?? 0.0) ? ((math.sin((1.0 - math.min(q.anim_time / 0.3, 1.0)) * (1.0 - math.min(q.anim_time / 0.3, 1.0)) * 280.0) - math.sin(280.0)) * -60.0) : (-(math.sin((1.0 - math.pow(1.0 - math.min(q.anim_time / 0.3, 1.0), 4.0)) * 180.0) * 1.2 + math.sin(math.min(q.anim_time / 0.3, 1.0) * 180.0)) * 30.0)",
-            "(variable.is_first_person ?? 0.0) ? ((math.sin((1.0 - math.min(q.anim_time / 0.3, 1.0)) * (1.0 - math.min(q.anim_time / 0.3, 1.0)) * 280.0) - math.sin(280.0)) * 40.0) : (math.sin((1.0 - math.pow(1.0 - math.min(q.anim_time / 0.3, 1.0), 4.0)) * 180.0) > 0.001 ? 90.0 * math.sin((1.0 - math.pow(1.0 - math.min(q.anim_time / 0.3, 1.0), 4.0)) * 180.0) - 30.0 : 0.0)",
-            "(variable.is_first_person ?? 0.0) ? ((math.sin((1.0 - math.min(q.anim_time / 0.3, 1.0)) * (1.0 - math.min(q.anim_time / 0.3, 1.0)) * 280.0) - math.sin(280.0)) * 20.0) : (0.0)"
+            "(variable.is_first_person ?? 0.0) ? (-60.0 * math.sin(math.sqrt(math.min(q.anim_time / 0.3, 1.0)) * 180.0)) : (-(math.sin((1.0 - math.pow(1.0 - math.min(q.anim_time / 0.3, 1.0), 4.0)) * 180.0) * 1.2 + math.sin(math.min(q.anim_time / 0.3, 1.0) * 180.0)) * 30.0)",
+            "(variable.is_first_person ?? 0.0) ? (35.0 * math.sin(math.sqrt(math.min(q.anim_time / 0.3, 1.0)) * 180.0)) : (math.sin((1.0 - math.pow(1.0 - math.min(q.anim_time / 0.3, 1.0), 4.0)) * 180.0) > 0.001 ? 90.0 * math.sin((1.0 - math.pow(1.0 - math.min(q.anim_time / 0.3, 1.0), 4.0)) * 180.0) - 30.0 : 0.0)",
+            "(variable.is_first_person ?? 0.0) ? (15.0 * math.sin(math.sqrt(math.min(q.anim_time / 0.3, 1.0)) * 180.0)) : (0.0)"
           ],
           "position": [
-            "(variable.is_first_person ?? 0.0) ? (math.clamp(-15.5 * math.sin(math.min(q.anim_time / 0.3, 1.0) * 112.0), -7.0, 999.0) * math.sin(math.min(q.anim_time / 0.3, 1.0) * 112.0)) : (0.0)",
-            "(variable.is_first_person ?? 0.0) ? ((math.sin((1.0 - math.min(q.anim_time / 0.3, 1.0)) * (1.0 - math.min(q.anim_time / 0.3, 1.0)) * 200.0) - math.sin(200.0)) * 7.5 - math.min(q.anim_time / 0.3, 1.0) * 15.0) : (0.0)",
-            "(variable.is_first_person ?? 0.0) ? (math.sin(math.min(q.anim_time / 0.3, 1.0) * 120.0) * 1.75) : (0.0)"
+            "(variable.is_first_person ?? 0.0) ? (-5.0 * math.sin(math.sqrt(math.min(q.anim_time / 0.3, 1.0)) * 180.0)) : (0.0)",
+            "(variable.is_first_person ?? 0.0) ? (-4.0 * math.sin(math.sqrt(math.min(q.anim_time / 0.3, 1.0)) * 180.0)) : (0.0)",
+            "(variable.is_first_person ?? 0.0) ? (1.5 * math.sin(math.sqrt(math.min(q.anim_time / 0.3, 1.0)) * 180.0)) : (0.0)"
           ]
         },
         "leftArm": {
