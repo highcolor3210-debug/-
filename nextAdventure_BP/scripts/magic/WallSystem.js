@@ -6,9 +6,13 @@
 import { system } from "@minecraft/server";
 import { killSpell } from "./SpellRegistry.js";
 import { remainingRatio } from "./Weakening.js";
+import { notify } from "./Notice.js";
 
 export const WALL_BLOCK = "na:earth_wall";
 export const WALL_BLOCK_CRACKED = "na:earth_wall_cracked";
+// 土壁ブロックが置けなかったとき（ブロック定義が読み込まれていないなど）の代わり
+const FALLBACK_BLOCK = "minecraft:coarse_dirt";
+const WALL_TYPES = new Set([WALL_BLOCK, WALL_BLOCK_CRACKED, FALLBACK_BLOCK]);
 const REPLACEABLE = new Set([
   "minecraft:air", "minecraft:short_grass", "minecraft:tall_grass", "minecraft:fern",
   "minecraft:large_fern", "minecraft:snow_layer", "minecraft:deadbush", "minecraft:fire",
@@ -17,6 +21,8 @@ const REPLACEABLE = new Set([
 /** "dim|x|y|z" -> 壁の魔術 */
 const wallBlocks = new Map();
 const key = (dimId, p) => `${dimId}|${p.x}|${p.y}|${p.z}`;
+// API には x, y, z だけを渡す（row など余計なものが付いていると受け付けないことがある）
+const xyz = (p) => ({ x: p.x, y: p.y, z: p.z });
 
 export function wallAt(dimId, loc) {
   const w = wallBlocks.get(key(dimId, { x: Math.floor(loc.x), y: Math.floor(loc.y), z: Math.floor(loc.z) }));
@@ -35,7 +41,7 @@ const FACE = {
 
 function isOpen(dim, p) {
   try {
-    const b = dim.getBlock(p);
+    const b = dim.getBlock(xyz(p));
     return !!b && REPLACEABLE.has(b.typeId);
   } catch {
     return false;
@@ -106,6 +112,7 @@ export function raiseWall(spell, caster) {
   const placeable = plan.positions.filter((p) => isOpen(plan.dim, p));
   if (!placeable.length) {
     sound(plan.dim, "dig.gravel", plan.base, 0.6, 0.8);
+    if (caster.typeId === "minecraft:player") notify(caster, "§7ここには土壁を立てられない");
     killSpell(spell);
     return false;
   }
@@ -118,20 +125,37 @@ export function raiseWall(spell, caster) {
 
   // 下の段から2tickおきに
   for (const p of placeable) {
-    const k2 = key(dimId, p);
-    wallBlocks.set(k2, spell);
-    spell.blocks.push(p);
+    const pos = xyz(p);
+    wallBlocks.set(key(dimId, pos), spell);
+    spell.blocks.push(pos);
     system.runTimeout(() => {
-      if (spell.phase !== "wall" || !isOpen(plan.dim, p)) return;
+      if (spell.phase !== "wall" || !isOpen(plan.dim, pos)) return;
+      placeWallBlock(plan.dim, pos, spell.cracked ? WALL_BLOCK_CRACKED : WALL_BLOCK, caster);
       try {
-        plan.dim.setBlockType(p, spell.cracked ? WALL_BLOCK_CRACKED : WALL_BLOCK);
-        plan.dim.spawnParticle("minecraft:falling_dust_gravel_particle", { x: p.x + 0.5, y: p.y + 0.5, z: p.z + 0.5 });
+        plan.dim.spawnParticle("minecraft:falling_dust_gravel_particle", { x: pos.x + 0.5, y: pos.y + 0.5, z: pos.z + 0.5 });
       } catch {}
     }, 1 + p.row * 2);
   }
   sound(plan.dim, "dig.gravel", spell.pos, 1.0, 0.6);
   system.runTimeout(() => sound(plan.dim, "dig.stone", spell.pos, 0.8, 0.7), 3);
   return true;
+}
+
+let reportedFailure = false;
+
+/** 土壁ブロックを置く。置けなければ代わりのブロックにして、理由を一度だけ知らせる */
+function placeWallBlock(dim, pos, type, caster) {
+  try {
+    dim.setBlockType(pos, type);
+    return;
+  } catch (e) {
+    console.warn(`[nextAdventure] 土壁ブロックを置けない (${type}): ${e}`);
+    if (!reportedFailure) {
+      reportedFailure = true;
+      if (caster?.isValid) notify(caster, `§c土壁ブロックを置けない：${e}`, 100);
+    }
+  }
+  try { dim.setBlockType(pos, FALLBACK_BLOCK); } catch {}
 }
 
 /** ぶつかって作用量が変わったあと */
@@ -160,7 +184,7 @@ export function crumble(spell) {
     wallBlocks.delete(key(dim.id, p));
     try {
       const b = dim.getBlock(p);
-      if (b && (b.typeId === WALL_BLOCK || b.typeId === WALL_BLOCK_CRACKED)) {
+      if (b && WALL_TYPES.has(b.typeId)) {
         b.setType("minecraft:air");
         dim.spawnParticle("minecraft:falling_dust_gravel_particle", { x: p.x + 0.5, y: p.y + 0.5, z: p.z + 0.5 });
       }

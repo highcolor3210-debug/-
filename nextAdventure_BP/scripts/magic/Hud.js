@@ -7,17 +7,17 @@ import { getSelectedSpell } from "./Loadout.js";
 import { MANA, getMana } from "./Mana.js";
 import { isInfiniteMana } from "./Debug.js";
 
-// 魔力ゲージのグリフ（RP の font/glyph_E2.png）
+// 魔力ゲージのグリフ（RP の font/glyph_E1.png、0x20〜）
 const MANA_GLYPH = {
-  full: "\uE200",
-  half: "\uE201",
-  empty: "\uE202",
-  infinite: "\uE21A",
-  digit: (n) => String.fromCharCode(0xe210 + n),
+  full: "\uE120",
+  half: "\uE121",
+  empty: "\uE122",
+  infinite: "\uE12A",
+  digit: (n) => String.fromCharCode(0xe130 + n),
 };
 // 見えない間隔（幅：アイコン1つ分／半分）
-const SPACE_FULL = "\uE203";
-const SPACE_HALF = "\uE204";
+const SPACE_FULL = "\uE123";
+const SPACE_HALF = "\uE124";
 const MANA_ICONS = 10; // 空腹ゲージと同じ10個
 
 /**

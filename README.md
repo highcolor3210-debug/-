@@ -1,6 +1,6 @@
 # nextAdventure
 
-マイクラ統合版の大規模ファンタジーRPGアドオン。現在 Ver.0.4.1（魔法編）。
+マイクラ統合版の大規模ファンタジーRPGアドオン。現在 Ver.0.4.2（魔法編）。
 
 ## フォルダ
 - `nextAdventure_BP/` ビヘイビアパック（アイテム・エンティティ・ブロック・スクリプト）
@@ -28,7 +28,7 @@
 
 ## テクスチャ
 - `tools/gen_assets3.py` 土壁ブロックと選択表示のグリフ（font/glyph_E1.png）
-- `tools/gen_assets4.py` 魔力ゲージのグリフ（font/glyph_E2.png）とデバッグ本
+- `tools/gen_assets4.py` 魔力ゲージのグリフ（font/glyph_E1.png に書き足す）とデバッグ本
 
 ## パッケージ
 両パックのフォルダを zip にして拡張子を `.mcaddon` にする。

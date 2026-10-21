@@ -1,4 +1,5 @@
-"""魔力ゲージのグリフ（font/glyph_E2.png）と、デバッグ本のアイテムテクスチャ
+"""魔力ゲージのグリフ（font/glyph_E1.png の 0x20〜0x3F に書き足す）と、デバッグ本のアイテムテクスチャ
+グリフのページを増やすと読み込まれない環境があったので、選択表示と同じ E1 にまとめている
 使い方: python gen_assets4.py <RPフォルダ> <プレビューpng>
 """
 import math, sys, os
@@ -104,23 +105,20 @@ def infinity():
         d.ellipse([7 + off, 5 + off, 14 + off, 12 + off], outline=col, width=2)
     return im
 
-sheet = Image.new("RGBA", (256, 256), (0, 0, 0, 0))
 glyphs = {
-    0x00: drop("full"), 0x01: drop("half"), 0x02: drop("empty"),
-    0x03: spacer(16), 0x04: spacer(8),
-    0x1A: infinity(),
+    0x20: drop("full"), 0x21: drop("half"), 0x22: drop("empty"),
+    0x23: spacer(16), 0x24: spacer(8),
+    0x2A: infinity(),
 }
 for n in range(10):
-    glyphs[0x10 + n] = digit(n)
-for code, im in glyphs.items():
-    sheet.alpha_composite(im, ((code % 16) * 16, (code // 16) * 16))
-os.makedirs(os.path.join(RP, "font"), exist_ok=True)
-sheet.save(os.path.join(RP, "font/glyph_E2.png"))
+    glyphs[0x30 + n] = digit(n)
 
-# 選択表示（glyph_E1）の見えない間隔 0x0F も同じ作りに直す
+# 選択表示（gen_assets3.py が作る glyph_E1）に書き足す。見えない間隔 0x0F も同じ作りに直す
 e1_path = os.path.join(RP, "font/glyph_E1.png")
 e1 = Image.open(e1_path).convert("RGBA")
 e1.paste(spacer(16), (15 * 16, 0))
+for code, im in glyphs.items():
+    e1.paste(im, ((code % 16) * 16, (code // 16) * 16))
 e1.save(e1_path)
 
 # ---------------- デバッグ本（16x16） ----------------
@@ -141,13 +139,13 @@ book.save(os.path.join(RP, "textures/items/na_debug_book.png"))
 
 # プレビュー：ゲージ（満タン7・半分1・空2 + 数字）とデバッグ本
 S = 4
-row = [0x00] * 7 + [0x01] + [0x02] * 2 + [0x17, 0x15]
+row = [0x20] * 7 + [0x21] + [0x22] * 2 + [0x37, 0x35]
 pv = Image.new("RGBA", (16 * S * len(row) + 16 * S * 2, 16 * S * 2), (40, 40, 48, 255))
 x = 0
 for c in row:
     pv.alpha_composite(glyphs[c].resize((16 * S, 16 * S), Image.NEAREST), (x, 0))
-    x += (8 if c >= 0x10 else 16) * S
-pv.alpha_composite(glyphs[0x1A].resize((16 * S, 16 * S), Image.NEAREST), (0, 16 * S))
+    x += (8 if c >= 0x30 else 16) * S
+pv.alpha_composite(glyphs[0x2A].resize((16 * S, 16 * S), Image.NEAREST), (0, 16 * S))
 pv.alpha_composite(book.resize((16 * S, 16 * S), Image.NEAREST), (x, 0))
 pv.save(PREVIEW)
 print("ok")
