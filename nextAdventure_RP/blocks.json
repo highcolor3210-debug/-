@@ -1,0 +1,13 @@
+{
+  "format_version": [
+    1,
+    1,
+    0
+  ],
+  "na:earth_wall": {
+    "sound": "gravel"
+  },
+  "na:earth_wall_cracked": {
+    "sound": "gravel"
+  }
+}

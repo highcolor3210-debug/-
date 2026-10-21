@@ -1,0 +1,20 @@
+{
+  "format_version": "1.21.90",
+  "minecraft:block": {
+    "description": {
+      "identifier": "na:earth_wall",
+      "menu_category": { "category": "none" }
+    },
+    "components": {
+      "minecraft:destructible_by_mining": { "seconds_to_destroy": 1.2 },
+      "minecraft:destructible_by_explosion": { "explosion_resistance": 3 },
+      "minecraft:loot": "loot_tables/blocks/na_empty.json",
+      "minecraft:map_color": "#7a5a3a",
+      "minecraft:material_instances": {
+        "*": { "texture": "na_earth_wall", "render_method": "opaque" }
+      },
+      "minecraft:tick": { "interval_range": [10, 10], "looping": true },
+      "na:earth_wall": {}
+    }
+  }
+}

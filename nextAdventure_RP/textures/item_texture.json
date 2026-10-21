@@ -1,0 +1,12 @@
+{
+  "resource_pack_name": "next_adventure",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "na_wand": {
+      "textures": "textures/items/na_wand"
+    },
+    "na_spirit_stone_fire": {
+      "textures": "textures/items/na_spirit_stone_fire"
+    }
+  }
+}

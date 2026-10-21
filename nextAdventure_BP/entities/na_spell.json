@@ -1,0 +1,49 @@
+{
+  "format_version": "1.21.60",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "na:spell",
+      "is_spawnable": false,
+      "is_summonable": true,
+      "properties": {
+        "na:size": {
+          "type": "float",
+          "range": [0.05, 4.0],
+          "default": 0.3,
+          "client_sync": true
+        },
+        "na:kind": {
+          "type": "int",
+          "range": [0, 63],
+          "default": 0,
+          "client_sync": true
+        }
+      }
+    },
+    "components": {
+      "minecraft:type_family": { "family": ["na_spell", "inanimate"] },
+      "minecraft:collision_box": { "width": 0.1, "height": 0.1 },
+      "minecraft:physics": { "has_gravity": false, "has_collision": false },
+      "minecraft:pushable": { "is_pushable": false, "is_pushable_by_piston": false },
+      "minecraft:knockback_resistance": { "value": 1.0 },
+      "minecraft:fire_immune": {},
+      "minecraft:health": { "value": 1, "max": 1 },
+      "minecraft:damage_sensor": {
+        "triggers": [ { "deals_damage": "no" } ]
+      },
+      "minecraft:breathable": {
+        "breathes_air": true,
+        "breathes_water": true,
+        "breathes_lava": true,
+        "breathes_solids": true
+      },
+      "minecraft:conditional_bandwidth_optimization": {
+        "default_values": {
+          "max_optimized_distance": 80.0,
+          "max_dropped_ticks": 0,
+          "use_motion_prediction_hints": true
+        }
+      }
+    }
+  }
+}

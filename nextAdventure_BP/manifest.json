@@ -1,0 +1,54 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "nextAdventure Ver.0.4.0 [BP]",
+    "description": "剣と魔法の異世界ファンタジー冒険譚 — 魔法編 その4：土壁と魔法選択",
+    "uuid": "8d6d83d0-b0d8-4066-b40c-93760cbd7a05",
+    "version": [
+      0,
+      4,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      90
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "9f43963f-113d-4a9e-870d-321afeec0428",
+      "version": [
+        0,
+        4,
+        0
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "uuid": "5b73c9d8-3cc3-45b0-a1c4-9f91c20d3bf4",
+      "entry": "scripts/main.js",
+      "version": [
+        0,
+        4,
+        0
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "module_name": "@minecraft/server",
+      "version": "2.10.0"
+    },
+    {
+      "uuid": "cfdb4662-3288-463a-83c3-6cb4d08c048f",
+      "version": [
+        0,
+        4,
+        0
+      ]
+    }
+  ]
+}

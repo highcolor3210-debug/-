@@ -1,0 +1,16 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.na.mage.casting": {
+      "loop": true,
+      "bones": {
+        "rightArm": {
+          "rotation": ["-75.0 + math.sin(query.life_time * 900.0) * 3.0", "-10.0", "0.0"]
+        },
+        "leftArm": {
+          "rotation": ["-25.0", "20.0", "-10.0"]
+        }
+      }
+    }
+  }
+}

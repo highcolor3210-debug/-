@@ -1,0 +1,7 @@
+item.na:wand.name=杖
+item.na:spirit_stone_fire.name=火の精霊の契約石
+entity.na:spell.name=魔術
+entity.na:mage.name=魔術師
+item.spawn_egg.entity.na:mage.name=魔術師のスポーンエッグ
+tile.na:earth_wall.name=土壁
+tile.na:earth_wall_cracked.name=ひび割れた土壁

@@ -1,0 +1,16 @@
+{
+  "format_version": "1.21.60",
+  "minecraft:item": {
+    "description": {
+      "identifier": "na:spirit_stone_fire",
+      "menu_category": { "category": "items" }
+    },
+    "components": {
+      "minecraft:icon": "na_spirit_stone_fire",
+      "minecraft:display_name": { "value": "item.na:spirit_stone_fire.name" },
+      "minecraft:max_stack_size": 1,
+      "minecraft:glint": true,
+      "minecraft:use_modifiers": { "use_duration": 0.8, "movement_modifier": 0.5 }
+    }
+  }
+}

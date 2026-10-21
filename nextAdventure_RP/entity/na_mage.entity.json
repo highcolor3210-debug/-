@@ -1,0 +1,31 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "na:mage",
+      "materials": { "default": "entity_alphatest" },
+      "textures": { "default": "textures/entity/na_mage" },
+      "geometry": { "default": "geometry.humanoid.custom" },
+      "enable_attachables": true,
+      "scripts": {
+        "pre_animation": [
+          "variable.tcos0 = (math.cos(query.modified_distance_moved * 38.17) * query.modified_move_speed) * 57.3;"
+        ],
+        "animate": [
+          "look_at_target",
+          "move",
+          "bob",
+          { "casting_pose": "query.property('na:casting')" }
+        ]
+      },
+      "animations": {
+        "look_at_target": "animation.humanoid.look_at_target.default",
+        "move": "animation.humanoid.move",
+        "bob": "animation.humanoid.bob",
+        "casting_pose": "animation.na.mage.casting"
+      },
+      "render_controllers": ["controller.render.default"],
+      "spawn_egg": { "base_color": "#6e1a20", "overlay_color": "#f2a33a" }
+    }
+  }
+}

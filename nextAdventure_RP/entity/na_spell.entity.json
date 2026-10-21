@@ -1,0 +1,22 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "na:spell",
+      "materials": { "default": "fireball" },
+      "textures": {
+        "fire0": "textures/entity/na_spell/fire_bullet_0",
+        "fire1": "textures/entity/na_spell/fire_bullet_1",
+        "fire2": "textures/entity/na_spell/fire_bullet_2",
+        "fire3": "textures/entity/na_spell/fire_bullet_3"
+      },
+      "geometry": { "default": "geometry.na.spell_orb" },
+      "animations": { "face_player": "animation.actor.billboard" },
+      "scripts": {
+        "scale": "query.property('na:size')",
+        "animate": ["face_player"]
+      },
+      "render_controllers": ["controller.render.na.spell"]
+    }
+  }
+}

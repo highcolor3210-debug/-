@@ -1,0 +1,10 @@
+{
+  "resource_pack_name": "next_adventure",
+  "texture_name": "atlas.terrain",
+  "padding": 8,
+  "num_mip_levels": 4,
+  "texture_data": {
+    "na_earth_wall": { "textures": "textures/blocks/na_earth_wall" },
+    "na_earth_wall_cracked": { "textures": "textures/blocks/na_earth_wall_cracked" }
+  }
+}
