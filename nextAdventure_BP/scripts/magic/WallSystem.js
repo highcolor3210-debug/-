@@ -42,17 +42,13 @@ function isOpen(dim, p) {
   }
 }
 
-/** 溜め具合 k(0..1) から壁の大きさ */
-export function wallSize(def, k) {
-  return {
-    width: def.wall.width + Math.round(def.charge.width * k),
-    height: def.wall.height + Math.round(def.charge.height * k),
-    seconds: def.wall.seconds * (1 + def.charge.seconds * k),
-  };
+/** 壁の大きさ（溜めはないので定義どおり） */
+export function wallSize(def) {
+  return { width: def.wall.width, height: def.wall.height, seconds: def.wall.seconds };
 }
 
 /** 視線の先に立つ壁の位置を計算する */
-export function planWall(caster, def, k) {
+export function planWall(caster, def) {
   const dim = caster.dimension;
   const head = caster.getHeadLocation();
   const v = caster.getViewDirection();
@@ -74,7 +70,7 @@ export function planWall(caster, def, k) {
 
   // 視線に垂直な向きに並べる
   const along = Math.abs(v.x) > Math.abs(v.z) ? { x: 0, z: 1 } : { x: 1, z: 0 };
-  const size = wallSize(def, k);
+  const size = wallSize(def);
   const left = -Math.floor((size.width - 1) / 2);
 
   const feet = caster.location;
@@ -91,9 +87,9 @@ export function planWall(caster, def, k) {
 }
 
 /** 詠唱中の目印 */
-export function previewWall(caster, def, k) {
+export function previewWall(caster, def) {
   if (system.currentTick % 4 !== 0) return;
-  const plan = planWall(caster, def, k);
+  const plan = planWall(caster, def);
   for (const p of plan.positions) {
     if (p.row !== 0 || !isOpen(plan.dim, p)) continue;
     try {
@@ -103,9 +99,9 @@ export function previewWall(caster, def, k) {
 }
 
 /** 発動：壁をせり上げる */
-export function raiseWall(spell, caster, k) {
+export function raiseWall(spell, caster) {
   const def = spell.def;
-  const plan = planWall(caster, def, k);
+  const plan = planWall(caster, def);
   const dimId = plan.dim.id;
   const placeable = plan.positions.filter((p) => isOpen(plan.dim, p));
   if (!placeable.length) {

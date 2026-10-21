@@ -41,12 +41,14 @@ export const SPELLS = {
     burnSeconds: 4,
 
     spiritCost: 12,             // 精霊魔術の場合に詠唱中に段階消費する力（単純魔術では使わない）
+    manaCost: 8,                // 単純魔術の場合に詠唱中に段階消費する自分の魔力
     size: { start: 0.12, cast: 0.45, max: 1.1 },
 
     // 溜め（任意）：溜めた分だけ大きさ・作用量・威力・射程が伸びる
     charge: {
       maxTicks: 40,
       spiritCost: 18,
+      manaCost: 12,
       force: 1.0,   // 最大で +100%
       power: 1.5,   // 最大で +150%
       range: 1.0,   // 最大で +100%
@@ -79,8 +81,7 @@ export const SPELLS = {
     reach: 8,                   // 壁を立てられる距離（ブロック）
     wall: { width: 3, height: 2, seconds: 8 },
     spiritCost: 14,
-
-    // 溜め：幅 3→5、高さ 2→3、持続 8→16秒、作用量 40→80
-    charge: { maxTicks: 40, spiritCost: 16, force: 1.0, width: 2, height: 1, seconds: 1.0 },
+    manaCost: 14,
+    // 溜めはない：詠唱が終わった瞬間に立つ
   },
 };

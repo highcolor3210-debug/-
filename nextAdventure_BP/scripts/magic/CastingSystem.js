@@ -13,6 +13,7 @@ import { Fx } from "./SpellEffects.js";
 import { notify } from "./Notice.js";
 import { previewWall, raiseWall } from "./WallSystem.js";
 import { getSelectedSpell } from "./Loadout.js";
+import { consumeMana } from "./Mana.js";
 import { add, mul, norm, lerp, sub } from "./vec.js";
 
 export const WAND_ID = "na:wand";
@@ -67,10 +68,15 @@ export function startCast(caster, ai) {
   const isPlayer = caster.typeId === "minecraft:player";
   const def = selectedSpell(caster);
   const total = castTicks(def, def.traits, MEDIA.wand);
-  const perTick = def.spiritCost / total;
 
-  // 単純魔術は精霊と契約していなくても使える（精霊の力も使わない）
+  // 単純魔術は精霊と契約していなくても使える（精霊の力ではなく自分の魔力を使う）
   const needsSpirit = def.category !== "simple";
+  const needsMana = isPlayer && !needsSpirit;
+  const perTick = (needsSpirit ? def.spiritCost : def.manaCost) / total;
+  if (needsMana && !consumeMana(caster, perTick)) {
+    notify(caster, "§b魔力が足りない");
+    return false;
+  }
   let spiritId;
   if (isPlayer && needsSpirit) {
     if (!hasAnyContract(caster)) {
@@ -105,7 +111,8 @@ export function startCast(caster, ai) {
     perTick,
     chargeTicks: 0,
     needsSpirit: isPlayer && needsSpirit,
-    consumed: isPlayer && needsSpirit ? perTick : 0,
+    needsMana,
+    consumed: isPlayer ? perTick : 0,
   };
   casts.set(caster.id, c);
   if (!isPlayer) setCastingPose(caster, true);
@@ -123,18 +130,16 @@ export function releaseCast(player) {
     return false;
   }
   if (c.spell.phase === "dead") return false;
-  if (c.def.behavior === "wall") return launchWall(c);
   launch(c, player.getViewDirection()); // 発動完了時の視線
   return true;
 }
 
-/** 土壁：発動完了時に見ている場所へ立てる */
+/** 土壁：詠唱が終わった瞬間、見ている場所へ立てる（溜めはない） */
 function launchWall(c) {
   casts.delete(c.caster.id);
-  const k = c.chargeTicks / c.def.charge.maxTicks;
-  c.spell.forceMax = c.def.force * (1 + c.def.charge.force * k);
+  c.spell.forceMax = c.def.force;
   c.spell.force = c.spell.forceMax;
-  return raiseWall(c.spell, c.caster, k);
+  return raiseWall(c.spell, c.caster);
 }
 
 /** 中断：火の玉は消え、すでに使った精霊の力だけ失う */
@@ -195,12 +200,21 @@ function updateForming(c) {
   spell.baseRange = range;
 }
 
-/** 精霊の力が要る魔術だけ、契約精霊の力を払う */
+/** プレイヤーだけ払う：精霊魔術は契約精霊の力、単純魔術は自分の魔力 */
 function pay(c, amount) {
-  if (!c.needsSpirit) return true;
-  if (!consumePower(c.caster, c.spiritId, amount)) return false;
+  if (c.needsSpirit) {
+    if (!consumePower(c.caster, c.spiritId, amount)) return false;
+  } else if (c.needsMana) {
+    if (!consumeMana(c.caster, amount)) return false;
+  } else {
+    return true;
+  }
   c.consumed += amount;
   return true;
+}
+
+function shortageMessage(c) {
+  return c.needsSpirit ? `§c${SPIRITS[c.spiritId].name}の力が足りない` : "§b魔力が足りない";
 }
 
 export function tickCasting() {
@@ -243,10 +257,14 @@ export function tickCasting() {
 
     if (c.phase === "cast") {
       if (!pay(c, c.perTick)) {
-        interrupt(caster, `§c${SPIRITS[c.spiritId].name}の力が足りない`);
+        interrupt(caster, shortageMessage(c));
         continue;
       }
       c.tick++;
+      if (c.tick >= c.castTicks && def.behavior === "wall") {
+        launchWall(c);
+        continue;
+      }
       if (c.tick >= c.castTicks) {
         c.phase = "charge";
         Fx.ready(spell.dimension, loc, def.attribute);
@@ -255,7 +273,8 @@ export function tickCasting() {
     } else {
       const goal = c.ai ? c.ai.chargeGoal : def.charge.maxTicks;
       if (c.chargeTicks < Math.min(goal, def.charge.maxTicks)) {
-        if (pay(c, def.charge.spiritCost / def.charge.maxTicks)) {
+        const cost = c.needsMana ? def.charge.manaCost : def.charge.spiritCost;
+        if (pay(c, cost / def.charge.maxTicks)) {
           c.chargeTicks++;
           updateForming(c);
         }
@@ -267,7 +286,7 @@ export function tickCasting() {
     }
 
     if (def.behavior === "wall") {
-      previewWall(caster, def, c.phase === "charge" ? c.chargeTicks / def.charge.maxTicks : 0);
+      previewWall(caster, def);
     } else {
       Fx.forming(spell.dimension, loc, spell.size);
       contactDamage(c);

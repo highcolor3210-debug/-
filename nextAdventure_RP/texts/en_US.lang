@@ -5,3 +5,4 @@ entity.na:mage.name=Mage
 item.spawn_egg.entity.na:mage.name=Mage Spawn Egg
 tile.na:earth_wall.name=Earth Wall
 tile.na:earth_wall_cracked.name=Cracked Earth Wall
+item.na:debug_book.name=Debug Book

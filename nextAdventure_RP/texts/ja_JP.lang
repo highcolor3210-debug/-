@@ -5,3 +5,4 @@ entity.na:mage.name=魔術師
 item.spawn_egg.entity.na:mage.name=魔術師のスポーンエッグ
 tile.na:earth_wall.name=土壁
 tile.na:earth_wall_cracked.name=ひび割れた土壁
+item.na:debug_book.name=デバッグ本

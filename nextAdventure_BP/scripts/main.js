@@ -11,6 +11,8 @@ import { tickPower, savePower, useContractStone, forgetPlayer } from "./magic/Co
 import { updateHud, forgetHud } from "./magic/Hud.js";
 import { tickMages, forgetMage, MAGE_ID } from "./magic/MageAI.js";
 import { Fx } from "./magic/SpellEffects.js";
+import { tickMana, saveMana, forgetMana } from "./magic/Mana.js";
+import { DEBUG_BOOK_ID, openDebugBook, forgetDebug } from "./magic/Debug.js";
 
 const SWING_ANIM = "animation.na.wand.vanilla_swing";
 const SWING_TICKS = 6;
@@ -40,6 +42,12 @@ world.afterEvents.itemCompleteUse.subscribe((ev) => {
   if (ev.itemStack?.typeId !== "na:spirit_stone_fire") return;
   useContractStone(ev.source, "fire");
   Fx.ready(ev.source.dimension, ev.source.getHeadLocation());
+});
+
+// デバッグ本：魔力無限などを切り替える
+world.afterEvents.itemUse.subscribe((ev) => {
+  if (ev.itemStack?.typeId !== DEBUG_BOOK_ID) return;
+  openDebugBook(ev.source);
 });
 
 // バニラの腕振り（壊すボタンなど）を記録して、二重に振らないようにする
@@ -91,8 +99,12 @@ system.runInterval(() => {
     else if (canSelect) openSelector(player);
 
     tickPower(player, casts.get(player.id)?.spiritId);
+    tickMana(player, casts.get(player.id)?.needsMana);
     if (now % 2 === 0) updateHud(player);
-    if (now % 100 === 0) savePower(player);
+    if (now % 100 === 0) {
+      savePower(player);
+      saveMana(player);
+    }
   }
 }, 1);
 
@@ -108,6 +120,8 @@ world.afterEvents.playerLeave.subscribe((ev) => {
   forgetPlayer(id);
   forgetLoadout(id);
   forgetHud(id);
+  forgetMana(id);
+  forgetDebug(id);
 });
 
 world.afterEvents.entityRemove.subscribe(

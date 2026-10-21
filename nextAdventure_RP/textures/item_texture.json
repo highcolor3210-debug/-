@@ -7,6 +7,9 @@
     },
     "na_spirit_stone_fire": {
       "textures": "textures/items/na_spirit_stone_fire"
+    },
+    "na_debug_book": {
+      "textures": "textures/items/na_debug_book"
     }
   }
 }

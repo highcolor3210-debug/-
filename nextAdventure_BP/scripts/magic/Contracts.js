@@ -3,6 +3,7 @@
 // ・主契約1体＋補助契約1体まで
 // ・最大値・回復速度は精霊ごと（数値は暫定）
 import { notify } from "./Notice.js";
+import { isInfiniteSpirit } from "./Debug.js";
 
 export const SPIRITS = {
   fire: {
@@ -69,6 +70,7 @@ export function spiritFor(player, attribute) {
 }
 
 export function consumePower(player, spiritId, amount) {
+  if (isInfiniteSpirit(player)) return true;
   const v = getPower(player, spiritId);
   if (v + 1e-6 < amount) return false;
   pool(player)[spiritId] = v - amount;
