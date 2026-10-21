@@ -1,5 +1,7 @@
 """Motion Addon を組み立てる
-使い方: python build.py [出力先のリソースパック]（既定は motionAddon_RP/。manifest.json と pack_icon.png はそのまま使う）
+使い方: python build.py [出力先のリソースパック] [--debug]
+  出力先の既定は motionAddon_RP/（manifest.json と pack_icon.png はそのまま使う）
+  --debug：確認用。形の見分けをせず関節を必ず使い、関節つきの腕・脚を赤く塗る（描かれているかが一目で分かる）
 
 作るもの（motionAddon_RP/ の中）
   models/entity/motion_limbs.geo.json          ひじ・ひざのある腕と脚（プレイヤーのスキンで描く）
@@ -40,7 +42,9 @@ import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-RP = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "..", "motionAddon_RP")
+DEBUG = "--debug" in sys.argv
+_args = [a for a in sys.argv[1:] if a != "--debug"]
+RP = _args[0] if _args else os.path.join(HERE, "..", "motionAddon_RP")
 
 
 def read_json(path):
@@ -70,10 +74,13 @@ SHAPE_BONES = ["rightArm", "leftArm", "rightLeg", "leftLeg", "rightItem", "leftI
 
 
 def shape_check(variant):
+    # 高さ（y）だけを見る。バニラも y の差（肩 − 持ち物の位置 − 7 が標準の形でちょうど 0）しか使っておらず、
+    # x の向き（右腕が -5 か +5 か）がゲームでどう返るかは確かめようがない。x まで見ていた 0.3.3〜0.3.4 では
+    # 標準の形のスキンでも関節が使われなかった可能性が高い
     parts = []
     for name in SHAPE_BONES:
-        for axis, v in enumerate(SKIN_GEO[variant][name]["pivot"]):
-            parts.append(f"math.abs(q.get_default_bone_pivot('{name.lower()}', {axis}) - ({float(v)})) < 0.05")
+        v = SKIN_GEO[variant][name]["pivot"][1]
+        parts.append(f"math.abs(q.get_default_bone_pivot('{name.lower()}', 1) - {float(v)}) < 0.05")
     return "(" + " && ".join(parts) + ")"
 
 # ---------------------------------------------------------------- モデル
@@ -503,7 +510,7 @@ INITIALIZE = [
 PRE_ANIMATION = [
     f"v.motion_wide = {shape_check('wide')};",
     f"v.motion_slim = {shape_check('slim')};",
-    "v.motion_joints = v.motion_wide || v.motion_slim;",
+    "v.motion_joints = 1.0;" if DEBUG else "v.motion_joints = v.motion_wide || v.motion_slim;",
     "v.motion_dt = math.clamp(q.delta_time, 0.0, 0.1);",
     "v.motion_follow = math.min(1.0, v.motion_dt * 8.0);",
     "v.motion_phase = q.modified_distance_moved * 38.17;",
@@ -588,6 +595,8 @@ def build_render_controllers():
         "textures": ["Texture.default"],
         "part_visibility": [{"*": "v.motion_joints"}],
     }
+    if DEBUG:
+        limbs_tp["overlay_color"] = {"r": 1.0, "g": 0.0, "b": 0.0, "a": 0.6}
     return {
         "format_version": "1.10.0",
         "render_controllers": {
