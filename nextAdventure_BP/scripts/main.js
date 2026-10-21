@@ -16,9 +16,11 @@ import { DEBUG_BOOK_ID, openDebugBook, forgetDebug } from "./magic/Debug.js";
 
 // 「壊す」ボタンの押し具合。押しっぱなしの間はゲーム側が腕を振り続けるので、
 // 振りが続いていれば押している、途切れたら離した、とみなす
+// （振りの間隔から間を縮めると、たまに来る間隔の短い振りで縮みすぎて溜められなくなったので固定）
 const presses = new Map(); // playerId -> 最後に振った tick（押している、または離して発動待ちの間だけある）
-const HOLD_GAP_TICKS = 10;   // 振りの間隔がまだ分からないときの「離した」とみなす間
-const holdGaps = new Map();  // playerId -> 実際の振りの間隔から決めた「離した」とみなす間
+const HOLD_GAP_TICKS = 10; // これだけ振りが来なければ「離した」とみなす
+
+const SWING_ANIM = "animation.na.wand.vanilla_swing";
 // 「壊す」ボタン以外の腕振り（置く・使う・投げる など）では発動しない
 const NOT_ATTACK_SWINGS = new Set(["Build", "Use", "Interact", "DropItem", "ThrowItem"]);
 
@@ -36,16 +38,9 @@ world.afterEvents.playerSwingStart.subscribe((ev) => {
   if (ev.swingSource !== undefined && NOT_ATTACK_SWINGS.has(ev.swingSource)) return;
   const player = ev.player;
   const now = system.currentTick;
-  const last = presses.get(player.id);
+  const pressing = presses.has(player.id);
   presses.set(player.id, now);
-  if (last !== undefined) {
-    // 押しっぱなしで振り続けている：その間隔を覚えて、離したのを早く気づけるようにする
-    const interval = now - last;
-    if (interval > 0 && interval <= HOLD_GAP_TICKS) {
-      holdGaps.set(player.id, Math.max(4, Math.min(holdGaps.get(player.id) ?? HOLD_GAP_TICKS, interval + 3)));
-    }
-    return;
-  }
+  if (pressing) return; // 押しっぱなしで振り続けている
   system.run(() => {
     if (!player.isValid || isCasting(player)) return;
     if (!startCast(player)) presses.delete(player.id);
@@ -130,10 +125,15 @@ function tickPress(player, now) {
     if (now - last > HOLD_GAP_TICKS) presses.delete(player.id);
     return;
   }
-  const held = now - last <= (holdGaps.get(player.id) ?? HOLD_GAP_TICKS);
+  const held = now - last <= HOLD_GAP_TICKS;
   if (held || casts.get(player.id).phase === "cast") return;
   presses.delete(player.id);
-  fireCast(player);
+  if (fireCast(player)) swingArm(player);
+}
+
+/** 離して発動したときの腕振り（押したときの振りはゲーム側がする） */
+function swingArm(player) {
+  try { player.playAnimation(SWING_ANIM, { controller: "na_wand_swing", blendOutTime: 0 }); } catch {}
 }
 
 // ---- 後片付け ----
@@ -145,7 +145,6 @@ world.afterEvents.playerLeave.subscribe((ev) => {
     killSpell(c.spell);
   }
   presses.delete(id);
-  holdGaps.delete(id);
   forgetPlayer(id);
   forgetLoadout(id);
   forgetHud(id);

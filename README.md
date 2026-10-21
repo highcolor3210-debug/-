@@ -1,11 +1,12 @@
 # nextAdventure
 
-マイクラ統合版の大規模ファンタジーRPGアドオン。現在 Ver.0.4.8（魔法編）。
+マイクラ統合版の大規模ファンタジーRPGアドオン。現在 Ver.0.4.9（魔法編）。
 
 ## フォルダ
 - `nextAdventure_BP/` ビヘイビアパック（アイテム・エンティティ・ブロック・スクリプト）
 - `nextAdventure_RP/` リソースパック（テクスチャ・モデル・アニメーション・HUD の JSON UI）
 - `tools/` テクスチャを作る Python スクリプト（Pillow が必要）
+- `docs/` 設計資料（`魔術体系・設計草案_v1.3.md`）
 
 ## 操作（杖）
 - 「壊す」ボタン：押して詠唱開始、離して発動
@@ -31,7 +32,7 @@
 - `magic/MageAI.js` 魔術師のAI / `magic/Hud.js` 画面表示（HUD へのデータ送信・アクションバー）
 
 ## 設計
-魔術体系・設計草案 v1.0 に基づく。@minecraft/server 2.10.0 / @minecraft/server-ui 2.0.0。
+魔術体系・設計草案（最新は `docs/魔術体系・設計草案_v1.3.md`）に基づく。@minecraft/server 2.10.0 / @minecraft/server-ui 2.0.0。
 
 ## テクスチャ
 - `tools/gen_assets3.py` 土壁ブロックと選択表示のアイコン（font/glyph_E1.png）
