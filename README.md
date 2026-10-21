@@ -1,6 +1,6 @@
 # nextAdventure
 
-マイクラ統合版の大規模ファンタジーRPGアドオン。現在 Ver.0.4.9（魔法編）。
+マイクラ統合版の大規模ファンタジーRPGアドオン。現在 Ver.0.4.10（魔法編）。
 
 ## フォルダ
 - `nextAdventure_BP/` ビヘイビアパック（アイテム・エンティティ・ブロック・スクリプト）
@@ -38,6 +38,11 @@
 - `tools/gen_assets3.py` 土壁ブロックと選択表示のアイコン（font/glyph_E1.png）
 - `tools/gen_assets4.py` デバッグ本
 - `tools/gen_hud_ui.py` HUD（ui/hud_screen.json）と HUD の画像（textures/ui/na/）。gen_assets3.py のあとに実行
+
+## 杖の見た目（アタッチャブル）
+手に持った杖は `attachables/na_wand.json` で描く（一人称でも腕の骨に付くので、アニメーションで動かせる）。
+形はバニラの弓のアタッチャブルと同じ作り（`texture_meshes` で絵を立体にする）。
+持つ位置・角度は `animations/na_wand_held.animation.json`。
 
 ## HUD
 魔力ゲージ（空腹ゲージの上・紫）、詠唱・溜めのバー（照準の下）、魔法の選択表示は JSON UI で描く。
