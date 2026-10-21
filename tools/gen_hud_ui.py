@@ -184,7 +184,7 @@ controls.append({"na_mana_text": {
 
 # 詠唱・溜めのバー：照準の少し下
 # 左端をそろえて置く（枠の左端が中央から -26、マスは枠の内側 1px から 5px おき）
-left = dict(anchor_from="center", anchor_to="left")
+left = dict(anchor_from="center", anchor_to="left_middle")
 controls.append(image("na_bar_frame", "bar_frame", [52, 7], [-26, 14], has("[b]"), layer=2, **left))
 for n in range(1, SEG + 1):
     x = -25 + (n - 1) * 5
