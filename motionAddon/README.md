@@ -2,7 +2,7 @@
 
 プレイヤーの動きを作り直すリソースパック（スクリプトなし）。nextAdventure とは別のアドオン。
 
-## Ver.0.3.0
+## Ver.0.3.1
 - **ひじ・ひざ**：腕と脚を上下2つに分けて、プレイヤーのスキンで描く（三人称。一人称の腕はバニラのまま）
 - 三人称：歩き・走りのキーフレームのサイクル（ひじの曲げ、ひざの曲げ伸ばし、前傾、体のひねり、上下の弾み）、
   ジャンプ（上りでひざを抱え、下りで伸ばす）、着地（ひざを曲げて沈む）、剣の振り（振りかぶって斜めに切る）、
@@ -21,9 +21,9 @@
 （`q.is_persona_or_premium_skin`）。動き（歩き・走り・剣の振り）はそのまま付く。
 
 ## しくみ
-- アニメーションは、バニラのプレイヤーの root コントローラーの写し（`animation_controllers/motion.player.animation_controllers.json`）の
-  first_person / third_person の状態の中で動かす。一人称では root の中のアニメーションしか効かないようで、
-  外（scripts.animate）に置いた一人称の動きはゲームで反映されなかった
+- アニメーションは、バニラのプレイヤーの root コントローラー（`controller.animation.player.root`）を**同じ ID のまま上書き**して
+  （`animation_controllers/motion.player.animation_controllers.json`）、first_person / third_person の状態の中で動かす。
+  一人称では、外（scripts.animate）に置いた動きも、別の ID にした写しの中の動きも反映されなかったため
 - `entity/player.entity.json`（バニラのプレイヤー）を置き換える。中身は Mojang/bedrock-samples 1.26.50 に
   変数・アニメーション・描き方を**足しただけ**（`tools/build.py` が作る）。同じファイルを置き換える他のアドオンとは一緒に使えない
 - 関節つきの腕・脚はマントと同じやり方：別のモデル（`models/entity/motion_limbs.geo.json`）を同じ骨の名前で重ねて、

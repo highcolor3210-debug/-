@@ -11,8 +11,8 @@
   entity/player.entity.json                    バニラ（tools/vanilla/）に上のものを足したもの
 
 しくみ
-- アニメーションはバニラの root コントローラー（の写し）の中で動かす。一人称では root の中のアニメーションしか
-  効かないようで、コントローラーの外（scripts.animate）に置いた一人称の動きはゲームで反映されなかった。
+- アニメーションは、バニラの root コントローラーをバニラと同じ ID のまま上書きして、その中で動かす。
+  一人称では、コントローラーの外（scripts.animate）に置いた動きも、別の ID にした写しの中の動きも反映されなかった。
 - 一人称の腕はバニラの腕のまま（関節つきの腕は三人称だけ）。別のモデルは一人称では動かなかったため。
 - 関節つきの腕・脚は、マントと同じやり方（別のモデルを同じ骨の名前で重ねて、別の描画で出す）。
   上腕・ふとももは バニラと同じ骨の名前なので、バニラのアニメーションもそのまま効く。
@@ -489,7 +489,8 @@ FIRST_PERSON_STATE = [
     {"motion.first_person.sword_slash": SLASH},
     {"motion.first_person.punch": PUNCH},
 ]
-ROOT_ID = "controller.animation.motion.player.root"
+# バニラと同じ ID で上書きする（別の ID にすると、一人称ではバニラの root が使われたままになった）
+ROOT_ID = "controller.animation.player.root"
 
 
 def build_animation_controllers():
@@ -535,8 +536,7 @@ def build_entity():
     for k in ENTITY_ANIMATIONS:
         assert k not in desc["animations"], k
     desc["animations"].update(ENTITY_ANIMATIONS)
-    assert desc["animations"]["root"] == "controller.animation.player.root"
-    desc["animations"]["root"] = ROOT_ID
+    assert desc["animations"]["root"] == ROOT_ID
     desc["geometry"]["motion_limbs"] = GEO_ID["wide"]
     desc["geometry"]["motion_limbs_slim"] = GEO_ID["slim"]
     # バニラの三人称の描き方を、このアドオンのもの（腕・脚を隠す版）に差し替えて、関節つきの腕・脚を足す（一人称はバニラのまま）

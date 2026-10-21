@@ -81,7 +81,7 @@
         "should_update_effects_offscreen": "1.0"
       },
       "animations": {
-        "root": "controller.animation.motion.player.root",
+        "root": "controller.animation.player.root",
         "base_controller": "controller.animation.player.base",
         "hudplayer": "controller.animation.player.hudplayer",
         "humanoid_base_pose": "animation.humanoid.base_pose",

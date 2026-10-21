@@ -1,7 +1,7 @@
 {
   "format_version": "1.10.0",
   "animation_controllers": {
-    "controller.animation.motion.player.root": {
+    "controller.animation.player.root": {
       "initial_state": "first_person",
       "states": {
         "first_person": {
