@@ -2130,6 +2130,34 @@
             }
           },
           {
+            "na_num_bg": {
+              "type": "image",
+              "texture": "textures/ui/na/num_bg",
+              "size": [
+                31,
+                9
+              ],
+              "offset": [
+                182,
+                -42
+              ],
+              "anchor_from": "bottom_left",
+              "anchor_to": "bottom_left",
+              "layer": 2,
+              "bindings": [
+                {
+                  "binding_name": "#hud_title_text_string",
+                  "binding_type": "global"
+                },
+                {
+                  "binding_type": "view",
+                  "source_property_name": "(not ((#hud_title_text_string - '[m]') = #hud_title_text_string))",
+                  "target_property_name": "#visible"
+                }
+              ]
+            }
+          },
+          {
             "na_num_n0_0": {
               "type": "image",
               "texture": "textures/ui/na/digit_0",
@@ -2138,8 +2166,8 @@
                 6
               ],
               "offset": [
-                191,
-                -32
+                192,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2166,8 +2194,8 @@
                 6
               ],
               "offset": [
-                191,
-                -32
+                192,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2194,8 +2222,8 @@
                 6
               ],
               "offset": [
-                191,
-                -32
+                192,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2222,8 +2250,8 @@
                 6
               ],
               "offset": [
-                191,
-                -32
+                192,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2250,8 +2278,8 @@
                 6
               ],
               "offset": [
-                191,
-                -32
+                192,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2278,8 +2306,8 @@
                 6
               ],
               "offset": [
-                191,
-                -32
+                192,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2306,8 +2334,8 @@
                 6
               ],
               "offset": [
-                191,
-                -32
+                192,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2334,8 +2362,8 @@
                 6
               ],
               "offset": [
-                191,
-                -32
+                192,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2362,8 +2390,8 @@
                 6
               ],
               "offset": [
-                191,
-                -32
+                192,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2390,8 +2418,8 @@
                 6
               ],
               "offset": [
-                191,
-                -32
+                192,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2418,8 +2446,8 @@
                 6
               ],
               "offset": [
-                187,
-                -32
+                188,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2446,8 +2474,8 @@
                 6
               ],
               "offset": [
-                187,
-                -32
+                188,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2474,8 +2502,8 @@
                 6
               ],
               "offset": [
-                187,
-                -32
+                188,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2502,8 +2530,8 @@
                 6
               ],
               "offset": [
-                187,
-                -32
+                188,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2530,8 +2558,8 @@
                 6
               ],
               "offset": [
-                187,
-                -32
+                188,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2558,8 +2586,8 @@
                 6
               ],
               "offset": [
-                187,
-                -32
+                188,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2586,8 +2614,8 @@
                 6
               ],
               "offset": [
-                187,
-                -32
+                188,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2614,8 +2642,8 @@
                 6
               ],
               "offset": [
-                187,
-                -32
+                188,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2642,8 +2670,8 @@
                 6
               ],
               "offset": [
-                187,
-                -32
+                188,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2670,8 +2698,8 @@
                 6
               ],
               "offset": [
-                187,
-                -32
+                188,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2698,8 +2726,8 @@
                 6
               ],
               "offset": [
-                183,
-                -32
+                184,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2726,8 +2754,8 @@
                 6
               ],
               "offset": [
-                183,
-                -32
+                184,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2754,8 +2782,8 @@
                 6
               ],
               "offset": [
-                183,
-                -32
+                184,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2782,8 +2810,8 @@
                 6
               ],
               "offset": [
-                183,
-                -32
+                184,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2810,8 +2838,8 @@
                 6
               ],
               "offset": [
-                183,
-                -32
+                184,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2838,8 +2866,8 @@
                 6
               ],
               "offset": [
-                183,
-                -32
+                184,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2866,8 +2894,8 @@
                 6
               ],
               "offset": [
-                183,
-                -32
+                184,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2894,8 +2922,8 @@
                 6
               ],
               "offset": [
-                183,
-                -32
+                184,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2922,8 +2950,8 @@
                 6
               ],
               "offset": [
-                183,
-                -32
+                184,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2950,8 +2978,8 @@
                 6
               ],
               "offset": [
-                183,
-                -32
+                184,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -2978,8 +3006,8 @@
                 6
               ],
               "offset": [
-                195,
-                -32
+                196,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3006,8 +3034,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3034,8 +3062,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3062,8 +3090,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3090,8 +3118,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3118,8 +3146,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3146,8 +3174,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3174,8 +3202,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3202,8 +3230,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3230,8 +3258,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3258,8 +3286,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3286,8 +3314,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3314,8 +3342,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3342,8 +3370,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3370,8 +3398,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3398,8 +3426,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3426,8 +3454,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3454,8 +3482,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3482,8 +3510,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3510,8 +3538,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3538,8 +3566,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3566,8 +3594,8 @@
                 6
               ],
               "offset": [
-                199,
-                -32
+                200,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3594,8 +3622,8 @@
                 6
               ],
               "offset": [
-                199,
-                -32
+                200,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3622,8 +3650,8 @@
                 6
               ],
               "offset": [
-                199,
-                -32
+                200,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3650,8 +3678,8 @@
                 6
               ],
               "offset": [
-                199,
-                -32
+                200,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3678,8 +3706,8 @@
                 6
               ],
               "offset": [
-                199,
-                -32
+                200,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3706,8 +3734,8 @@
                 6
               ],
               "offset": [
-                199,
-                -32
+                200,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3734,8 +3762,8 @@
                 6
               ],
               "offset": [
-                199,
-                -32
+                200,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3762,8 +3790,8 @@
                 6
               ],
               "offset": [
-                199,
-                -32
+                200,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3790,8 +3818,8 @@
                 6
               ],
               "offset": [
-                199,
-                -32
+                200,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -3818,8 +3846,8 @@
                 6
               ],
               "offset": [
-                199,
-                -32
+                200,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -4688,6 +4716,34 @@
             }
           },
           {
+            "na_num_bg": {
+              "type": "image",
+              "texture": "textures/ui/na/num_bg",
+              "size": [
+                31,
+                9
+              ],
+              "offset": [
+                202,
+                -42
+              ],
+              "anchor_from": "bottom_left",
+              "anchor_to": "bottom_left",
+              "layer": 2,
+              "bindings": [
+                {
+                  "binding_name": "#hud_title_text_string",
+                  "binding_type": "global"
+                },
+                {
+                  "binding_type": "view",
+                  "source_property_name": "(not ((#hud_title_text_string - '[m]') = #hud_title_text_string))",
+                  "target_property_name": "#visible"
+                }
+              ]
+            }
+          },
+          {
             "na_num_n0_0": {
               "type": "image",
               "texture": "textures/ui/na/digit_0",
@@ -4696,8 +4752,8 @@
                 6
               ],
               "offset": [
-                211,
-                -32
+                212,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -4724,8 +4780,8 @@
                 6
               ],
               "offset": [
-                211,
-                -32
+                212,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -4752,8 +4808,8 @@
                 6
               ],
               "offset": [
-                211,
-                -32
+                212,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -4780,8 +4836,8 @@
                 6
               ],
               "offset": [
-                211,
-                -32
+                212,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -4808,8 +4864,8 @@
                 6
               ],
               "offset": [
-                211,
-                -32
+                212,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -4836,8 +4892,8 @@
                 6
               ],
               "offset": [
-                211,
-                -32
+                212,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -4864,8 +4920,8 @@
                 6
               ],
               "offset": [
-                211,
-                -32
+                212,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -4892,8 +4948,8 @@
                 6
               ],
               "offset": [
-                211,
-                -32
+                212,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -4920,8 +4976,8 @@
                 6
               ],
               "offset": [
-                211,
-                -32
+                212,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -4948,8 +5004,8 @@
                 6
               ],
               "offset": [
-                211,
-                -32
+                212,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -4976,8 +5032,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5004,8 +5060,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5032,8 +5088,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5060,8 +5116,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5088,8 +5144,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5116,8 +5172,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5144,8 +5200,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5172,8 +5228,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5200,8 +5256,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5228,8 +5284,8 @@
                 6
               ],
               "offset": [
-                207,
-                -32
+                208,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5256,8 +5312,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5284,8 +5340,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5312,8 +5368,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5340,8 +5396,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5368,8 +5424,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5396,8 +5452,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5424,8 +5480,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5452,8 +5508,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5480,8 +5536,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5508,8 +5564,8 @@
                 6
               ],
               "offset": [
-                203,
-                -32
+                204,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5536,8 +5592,8 @@
                 6
               ],
               "offset": [
-                215,
-                -32
+                216,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5564,8 +5620,8 @@
                 6
               ],
               "offset": [
-                227,
-                -32
+                228,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5592,8 +5648,8 @@
                 6
               ],
               "offset": [
-                227,
-                -32
+                228,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5620,8 +5676,8 @@
                 6
               ],
               "offset": [
-                227,
-                -32
+                228,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5648,8 +5704,8 @@
                 6
               ],
               "offset": [
-                227,
-                -32
+                228,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5676,8 +5732,8 @@
                 6
               ],
               "offset": [
-                227,
-                -32
+                228,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5704,8 +5760,8 @@
                 6
               ],
               "offset": [
-                227,
-                -32
+                228,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5732,8 +5788,8 @@
                 6
               ],
               "offset": [
-                227,
-                -32
+                228,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5760,8 +5816,8 @@
                 6
               ],
               "offset": [
-                227,
-                -32
+                228,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5788,8 +5844,8 @@
                 6
               ],
               "offset": [
-                227,
-                -32
+                228,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5816,8 +5872,8 @@
                 6
               ],
               "offset": [
-                227,
-                -32
+                228,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5844,8 +5900,8 @@
                 6
               ],
               "offset": [
-                223,
-                -32
+                224,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5872,8 +5928,8 @@
                 6
               ],
               "offset": [
-                223,
-                -32
+                224,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5900,8 +5956,8 @@
                 6
               ],
               "offset": [
-                223,
-                -32
+                224,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5928,8 +5984,8 @@
                 6
               ],
               "offset": [
-                223,
-                -32
+                224,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5956,8 +6012,8 @@
                 6
               ],
               "offset": [
-                223,
-                -32
+                224,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -5984,8 +6040,8 @@
                 6
               ],
               "offset": [
-                223,
-                -32
+                224,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -6012,8 +6068,8 @@
                 6
               ],
               "offset": [
-                223,
-                -32
+                224,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -6040,8 +6096,8 @@
                 6
               ],
               "offset": [
-                223,
-                -32
+                224,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -6068,8 +6124,8 @@
                 6
               ],
               "offset": [
-                223,
-                -32
+                224,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -6096,8 +6152,8 @@
                 6
               ],
               "offset": [
-                223,
-                -32
+                224,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -6124,8 +6180,8 @@
                 6
               ],
               "offset": [
-                219,
-                -32
+                220,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -6152,8 +6208,8 @@
                 6
               ],
               "offset": [
-                219,
-                -32
+                220,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -6180,8 +6236,8 @@
                 6
               ],
               "offset": [
-                219,
-                -32
+                220,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -6208,8 +6264,8 @@
                 6
               ],
               "offset": [
-                219,
-                -32
+                220,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -6236,8 +6292,8 @@
                 6
               ],
               "offset": [
-                219,
-                -32
+                220,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -6264,8 +6320,8 @@
                 6
               ],
               "offset": [
-                219,
-                -32
+                220,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -6292,8 +6348,8 @@
                 6
               ],
               "offset": [
-                219,
-                -32
+                220,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -6320,8 +6376,8 @@
                 6
               ],
               "offset": [
-                219,
-                -32
+                220,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -6348,8 +6404,8 @@
                 6
               ],
               "offset": [
-                219,
-                -32
+                220,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",
@@ -6376,8 +6432,8 @@
                 6
               ],
               "offset": [
-                219,
-                -32
+                220,
+                -43
               ],
               "anchor_from": "bottom_left",
               "anchor_to": "bottom_left",

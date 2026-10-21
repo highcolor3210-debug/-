@@ -98,6 +98,9 @@ for code, (normal, hover) in SLOT_GLYPH.items():
     save(cell(normal), f"slot_{code}_0")
     save(cell(hover), f"slot_{code}_1")
 
+# 数字の下に敷く黒い板（半透明。UI 側で引き伸ばす）
+save(Image.new("RGBA", (4, 4), (0, 0, 0, 170)), "num_bg")
+
 # 数字（3x5 の文字に影をつけて 4x6）。魔力の「今/最大」に使う
 FONT = {
     "0": ["111", "101", "101", "101", "111"], "1": ["010", "110", "010", "010", "111"],
@@ -153,8 +156,10 @@ def mana_row(panel_width):
         out.append(image(f"na_mana_bg_{i}", "mana_empty", [9, 9], [x, y], has("[m]"), layer=2, **pos))
         out.append(image(f"na_mana_half_{i}", "mana_half", [9, 9], [x, y], has(f"[m{i}H]"), layer=3, **pos))
         out.append(image(f"na_mana_full_{i}", "mana_full", [9, 9], [x, y], has(f"[m{i}F]"), layer=3, **pos))
-    # 「今/最大」：空腹ゲージの右下。今の値は右寄せ3桁、そのあとに / と最大値3桁
-    x0, y = panel_width + 3, -32
+    # 「今/最大」：魔力ゲージのすぐ右の黒い板の中。今の値は右寄せ3桁、そのあとに / と最大値3桁
+    box_x, box_w = panel_width + 2, 7 * 4 + 3
+    out.append(image("na_num_bg", "num_bg", [box_w, 9], [box_x, -42], has("[m]"), layer=2, **pos))
+    x0, y = box_x + 2, -43
     for p in range(3):  # 今の値（左から百・十・一の位）
         for dgt in "0123456789":
             out.append(image(f"na_num_n{p}_{dgt}", f"digit_{dgt}", [4, 6], [x0 + (2 - p) * 4, y], has(f"[n{p}{dgt}]"), layer=3, **pos))

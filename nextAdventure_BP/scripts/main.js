@@ -16,9 +16,9 @@ import { DEBUG_BOOK_ID, openDebugBook, forgetDebug } from "./magic/Debug.js";
 
 // 「壊す」ボタンの押し具合。押しっぱなしの間はゲーム側が腕を振り続けるので、
 // 振りが続いていれば押している、途切れたら離した、とみなす
-// （1回クリックしただけのときは振りが続かないので、押しっぱなしとは数えない）
-const presses = new Map(); // playerId -> { last: 最後に振ったtick, repeated: 振りが続いたか, readyWhileHeld: 押したまま詠唱が終わったか }
-const HOLD_GAP_TICKS = 10;
+const presses = new Map(); // playerId -> 最後に振った tick（押している、または離して発動待ちの間だけある）
+const HOLD_GAP_TICKS = 10;   // 振りの間隔がまだ分からないときの「離した」とみなす間
+const holdGaps = new Map();  // playerId -> 実際の振りの間隔から決めた「離した」とみなす間
 // 「壊す」ボタン以外の腕振り（置く・使う・投げる など）では発動しない
 const NOT_ATTACK_SWINGS = new Set(["Build", "Use", "Interact", "DropItem", "ThrowItem"]);
 
@@ -29,24 +29,26 @@ system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
 });
 
 // 杖で「壊す」ボタン（腕はゲーム側が振るので、一人称でも三人称でも振りが見える）
-// ・押す → 詠唱開始。詠唱が終わっていれば、押した瞬間に発動
-// ・押したまま詠唱を終える → 押している間は溜まり、離すと発動
+// ・押す → 詠唱開始。押している間、詠唱が終わったあとは溜まっていく
+// ・離す → 発動。詠唱の途中で離したら、詠唱が終わった瞬間に発動
 world.afterEvents.playerSwingStart.subscribe((ev) => {
   if (ev.heldItemStack?.typeId !== WAND_ID) return;
   if (ev.swingSource !== undefined && NOT_ATTACK_SWINGS.has(ev.swingSource)) return;
   const player = ev.player;
   const now = system.currentTick;
-  const st = presses.get(player.id);
-  if (st && now - st.last <= HOLD_GAP_TICKS) {
-    st.last = now; // 押しっぱなしで振り続けている
-    st.repeated = true;
+  const last = presses.get(player.id);
+  presses.set(player.id, now);
+  if (last !== undefined) {
+    // 押しっぱなしで振り続けている：その間隔を覚えて、離したのを早く気づけるようにする
+    const interval = now - last;
+    if (interval > 0 && interval <= HOLD_GAP_TICKS) {
+      holdGaps.set(player.id, Math.max(4, Math.min(holdGaps.get(player.id) ?? HOLD_GAP_TICKS, interval + 3)));
+    }
     return;
   }
-  presses.set(player.id, { last: now, repeated: false, readyWhileHeld: false });
   system.run(() => {
-    if (!player.isValid) return;
-    if (isCasting(player)) fireCast(player);
-    else startCast(player);
+    if (!player.isValid || isCasting(player)) return;
+    if (!startCast(player)) presses.delete(player.id);
   });
 });
 
@@ -55,13 +57,16 @@ world.beforeEvents.playerBreakBlock.subscribe((ev) => {
   if (ev.itemStack?.typeId === WAND_ID) ev.cancel = true;
 });
 
-// 杖で「置く（使う）」ボタンを押している間 → 魔法の選択。離すと決定
+// 杖で「置く（使う）」ボタンを押している間 → 魔法の選択。離すと決定（詠唱・溜めの最中は出さない）
 world.afterEvents.itemStartUse.subscribe((ev) => {
-  if (ev.itemStack?.typeId !== WAND_ID) return;
+  if (ev.itemStack?.typeId !== WAND_ID || isCasting(ev.source)) return;
   openSelector(ev.source);
+  updateHud(ev.source); // すぐ出す
 });
 world.afterEvents.itemStopUse.subscribe((ev) => {
-  if (isSelecting(ev.source)) closeSelector(ev.source, true);
+  if (!isSelecting(ev.source)) return;
+  closeSelector(ev.source, true);
+  updateHud(ev.source);
 });
 
 // 契約石：0.8秒かかげて契約（しゃがみながらで解除）
@@ -108,7 +113,7 @@ system.runInterval(() => {
 
     tickPower(player, casts.get(player.id)?.spiritId);
     tickMana(player, casts.get(player.id)?.needsMana);
-    if (now % 2 === 0) updateHud(player);
+    updateHud(player);
     if (now % 100 === 0) {
       savePower(player);
       saveMana(player);
@@ -116,18 +121,19 @@ system.runInterval(() => {
   }
 }, 1);
 
-/** 押したまま詠唱が終わったか見ておき、離したら発動する */
+/** 離したら発動する。詠唱の途中で離していたら、詠唱が終わるのを待って発動 */
 function tickPress(player, now) {
-  const st = presses.get(player.id);
-  if (!st) return;
-  const c = casts.get(player.id);
-  const held = now - st.last <= HOLD_GAP_TICKS;
-  if (held) {
-    if (st.repeated && c && c.phase !== "cast") st.readyWhileHeld = true;
+  const last = presses.get(player.id);
+  if (last === undefined) return;
+  if (!casts.has(player.id)) {
+    // 中断された：離すまで待ってから次の詠唱を受け付ける
+    if (now - last > HOLD_GAP_TICKS) presses.delete(player.id);
     return;
   }
+  const held = now - last <= (holdGaps.get(player.id) ?? HOLD_GAP_TICKS);
+  if (held || casts.get(player.id).phase === "cast") return;
   presses.delete(player.id);
-  if (st.readyWhileHeld && c) fireCast(player);
+  fireCast(player);
 }
 
 // ---- 後片付け ----
@@ -139,6 +145,7 @@ world.afterEvents.playerLeave.subscribe((ev) => {
     killSpell(c.spell);
   }
   presses.delete(id);
+  holdGaps.delete(id);
   forgetPlayer(id);
   forgetLoadout(id);
   forgetHud(id);

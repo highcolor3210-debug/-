@@ -1,7 +1,7 @@
 // 杖にセットした魔術（最大4つ）と、しゃがみで出す十字の選択表示
 //
 // 杖で「置く（使う）」ボタンを押し続ける → 選択表示が出る（その間も歩ける）
-// 移動の方向（スティック／WASD）を倒すと、その方向のマスへ選択が動く
+// 視点を動かすと、動かした方向（上下左右）のマスへ選択が動く
 // ボタンを離す → 決定
 //
 // 十字の並び（時計回り）:
@@ -26,7 +26,8 @@ const KEY_SELECTED = "na:selected_slot";
 
 const loadouts = new Map();  // playerId -> string[]
 const selected = new Map();  // playerId -> number
-const selecting = new Map(); // playerId -> { hover }
+const selecting = new Map(); // playerId -> { hover, base: 視点の基準 { x: 上下, y: 左右 } }
+const TURN_DEGREES = 6; // これだけ視点を動かしたら、その方向のマスを選ぶ
 
 export function getLoadout(player) {
   let l = loadouts.get(player.id);
@@ -72,7 +73,7 @@ function setWalk(player, enabled) {
 
 export function openSelector(player) {
   if (selecting.has(player.id)) return;
-  selecting.set(player.id, { hover: getSelectedIndex(player) });
+  selecting.set(player.id, { hover: getSelectedIndex(player), base: player.getRotation() });
   try { player.dimension.playSound("random.click", player.location, { volume: 0.4, pitch: 1.6 }); } catch {}
 }
 
@@ -87,16 +88,15 @@ export function closeSelector(player, confirm = true) {
   try { player.setDynamicProperty(KEY_SELECTED, st.hover); } catch {}
 }
 
-/** 移動入力の向き → 十字のマス（0=上、時計回り） */
-function slotFromInput(player) {
-  let v;
-  try { v = player.inputInfo.getMovementVector(); } catch { return undefined; }
-  // スティックの遊びだけ除いて、向きだけを見る
-  if (!v || Math.hypot(v.x, v.y) < 0.2) return undefined;
-  const right = -v.x; // 左が +x
-  let deg = (Math.atan2(right, v.y) * 180) / Math.PI; // 上=0、右回り
-  if (deg < 0) deg += 360;
-  return Math.round(deg / (360 / SLOT_COUNT)) % SLOT_COUNT;
+/** 基準から視点を動かした向き → 十字のマス（0=上、1=右、2=下、3=左）。動きが小さければ undefined */
+function slotFromTurn(player, base) {
+  const r = player.getRotation();
+  let yaw = r.y - base.y; // 右を向くと増える
+  yaw = ((yaw + 540) % 360) - 180;
+  const pitch = r.x - base.x; // 下を向くと増える
+  if (Math.hypot(yaw, pitch) < TURN_DEGREES) return undefined;
+  if (Math.abs(yaw) >= Math.abs(pitch)) return yaw > 0 ? 1 : 3;
+  return pitch > 0 ? 2 : 0;
 }
 
 export function tickSelector(player, stillValid) {
@@ -106,9 +106,11 @@ export function tickSelector(player, stillValid) {
     closeSelector(player, true);
     return;
   }
-  const want = slotFromInput(player);
-  const l = getLoadout(player);
-  if (want !== undefined && want !== st.hover && l[want]) {
+  const want = slotFromTurn(player, st.base);
+  if (want === undefined) return;
+  // 動かした先を新しい基準にする（続けて別の方向へ動かせば、そのマスへ移る）
+  st.base = player.getRotation();
+  if (want !== st.hover && getLoadout(player)[want]) {
     st.hover = want;
     try { player.dimension.playSound("random.click", player.location, { volume: 0.3, pitch: 2.0 }); } catch {}
   }
