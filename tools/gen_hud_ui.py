@@ -1,7 +1,8 @@
 """HUD（ui/hud_screen.json）とその画像を作る
 使い方: python gen_hud_ui.py <RPフォルダ>
 
-スクリプトはタイトルに「na_hud」で始まるデータ文字列を送る（Hud.js）。
+スクリプトはタイトルに「na_hud」を含むデータ文字列を送る（Hud.js）。
+先頭の7文字は魔力の「今/最大」（例 "75/100 "）で、そのまま数字の表示に使う。
 ここで作る JSON UI がその文字列を覚えておき、含まれる記号で各画像の表示を切り替える。
 データのタイトルそのものは画面に出さない。
 
@@ -145,13 +146,41 @@ controls = [{
     }
 }]
 
-# 魔力ゲージ：空腹ゲージ（hunger_rend）の1段上。右端が 0 番
+# 魔力ゲージ：空腹ゲージ（hunger_rend）の1段上（空気の泡と同じ段）。右端が 0 番
+MANA_Y = -48
 for i in range(10):
-    x, y = 80 - 8 * i, -38
+    x, y = 80 - 8 * i, MANA_Y
     pos = dict(anchor_from="bottom_middle", anchor_to="bottom_left")
     controls.append(image(f"na_mana_bg_{i}", "mana_empty", [9, 9], [x, y], has("[m]"), layer=2, **pos))
     controls.append(image(f"na_mana_half_{i}", "mana_half", [9, 9], [x, y], has(f"[m{i}H]"), layer=3, **pos))
     controls.append(image(f"na_mana_full_{i}", "mana_full", [9, 9], [x, y], has(f"[m{i}F]"), layer=3, **pos))
+
+# 魔力の数字「今/最大」：ゲージの右下
+controls.append({"na_mana_text": {
+    "type": "label",
+    "text": "#text",
+    "color": [0.85, 0.7, 1.0],
+    "shadow": True,
+    "font_scale_factor": 0.8,
+    "anchor_from": "bottom_middle",
+    "anchor_to": "bottom_left",
+    "offset": [92, MANA_Y + 9],
+    "layer": 3,
+    "bindings": [
+        {
+            "binding_type": "view",
+            "source_control_name": SRC,
+            "source_property_name": "('%.7s' * #preserved_text)",
+            "target_property_name": "#text",
+        },
+        {
+            "binding_type": "view",
+            "source_control_name": SRC,
+            "source_property_name": has("[m]"),
+            "target_property_name": "#visible",
+        },
+    ],
+}})
 
 # 詠唱・溜めのバー：照準の少し下
 # 左端をそろえて置く（枠の左端が中央から -26、マスは枠の内側 1px から 5px おき）

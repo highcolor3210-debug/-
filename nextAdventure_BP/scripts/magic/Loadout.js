@@ -1,8 +1,8 @@
 // 杖にセットした魔術（最大4つ）と、しゃがみで出す十字の選択表示
 //
-// 杖を持ってしゃがむ → 選択表示が出る（その間はその場にとどまる）
+// 杖で「置く（使う）」ボタンを押し続ける → 選択表示が出る（その間も歩ける）
 // 移動の方向（スティック／WASD）を倒すと、その方向のマスへ選択が動く
-// しゃがみをやめる → 決定
+// ボタンを離す → 決定
 //
 // 十字の並び（時計回り）:
 //        [1]
@@ -26,7 +26,7 @@ const KEY_SELECTED = "na:selected_slot";
 
 const loadouts = new Map();  // playerId -> string[]
 const selected = new Map();  // playerId -> number
-const selecting = new Map(); // playerId -> { hover, anchor }
+const selecting = new Map(); // playerId -> { hover }
 
 export function getLoadout(player) {
   let l = loadouts.get(player.id);
@@ -65,23 +65,14 @@ export function isSelecting(player) {
   return selecting.has(player.id);
 }
 
-// 0.4.0 では移動の入力を止めていたが、止めると移動の向きも読めなくなる（選択が動かない）。
-// いまはその場に引き戻すだけにしている。これは 0.4.0 で止めたまま保存された人を戻す用
+// 0.4.0 では選択中に移動の入力を止めていた。これはそのまま保存された人を戻す用
 function setWalk(player, enabled) {
   try { player.inputPermissions.setPermissionCategory(InputPermissionCategory.LateralMovement, enabled); } catch {}
 }
 
-/** 選択中は開いた場所から動かないように引き戻す（落下はそのまま） */
-function holdInPlace(player, st) {
-  const p = player.location;
-  if (Math.hypot(p.x - st.anchor.x, p.z - st.anchor.z) < 0.05) return;
-  try { player.teleport({ x: st.anchor.x, y: p.y, z: st.anchor.z }, { keepVelocity: false }); } catch {}
-}
-
 export function openSelector(player) {
   if (selecting.has(player.id)) return;
-  const { x, z } = player.location;
-  selecting.set(player.id, { hover: getSelectedIndex(player), anchor: { x, z } });
+  selecting.set(player.id, { hover: getSelectedIndex(player) });
   try { player.dimension.playSound("random.click", player.location, { volume: 0.4, pitch: 1.6 }); } catch {}
 }
 
@@ -100,7 +91,7 @@ export function closeSelector(player, confirm = true) {
 function slotFromInput(player) {
   let v;
   try { v = player.inputInfo.getMovementVector(); } catch { return undefined; }
-  // しゃがみ中は入力が小さく出ることがあるので、しきい値は低めにして向きだけを見る
+  // スティックの遊びだけ除いて、向きだけを見る
   if (!v || Math.hypot(v.x, v.y) < 0.2) return undefined;
   const right = -v.x; // 左が +x
   let deg = (Math.atan2(right, v.y) * 180) / Math.PI; // 上=0、右回り
@@ -115,7 +106,6 @@ export function tickSelector(player, stillValid) {
     closeSelector(player, true);
     return;
   }
-  holdInPlace(player, st);
   const want = slotFromInput(player);
   const l = getLoadout(player);
   if (want !== undefined && want !== st.hover && l[want]) {

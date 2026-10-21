@@ -11,6 +11,7 @@ import { selectorState } from "./Loadout.js";
 import { MANA, getMana } from "./Mana.js";
 
 const HUD_MARK = "na_hud";
+const MANA_TEXT_WIDTH = 7; // 先頭の「今/最大」の欄の文字数（UI 側は '%.7s' で読む）
 const MANA_ICONS = 10; // 空腹ゲージと同じ10個
 const BAR_SEGMENTS = 10;
 
@@ -37,13 +38,14 @@ function showsSurvivalUi(player) {
 }
 
 function hudData(player) {
-  let data = HUD_MARK;
+  // 先頭は魔力の「今/最大」（幅をそろえるため後ろを空白で埋める）
+  const v = getMana(player);
+  let data = `${Math.floor(v)}/${MANA.max}`.padEnd(MANA_TEXT_WIDTH, " ").slice(0, MANA_TEXT_WIDTH) + HUD_MARK;
 
   // 魔力：右端（0番）から埋まる。空腹ゲージと同じ並び
   if (showsSurvivalUi(player)) {
     data += "[m]";
     const per = MANA.max / MANA_ICONS;
-    const v = getMana(player);
     for (let i = 0; i < MANA_ICONS; i++) {
       const rest = v - i * per;
       if (rest >= per - 1e-6) data += `[m${i}F]`;
@@ -57,7 +59,7 @@ function hudData(player) {
     data += "[b]";
     data += c.phase === "cast"
       ? upTo("s", c.tick / c.castTicks)
-      : upTo("c", c.chargeTicks / c.def.charge.maxTicks);
+      : upTo("c", c.def.charge ? c.chargeTicks / c.def.charge.maxTicks : 1); // 溜めのない魔術は「構え済み」で満タン
   }
 
   // 魔法の選択表示

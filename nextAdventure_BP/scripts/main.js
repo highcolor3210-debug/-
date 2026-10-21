@@ -1,12 +1,12 @@
 // nextAdventure — 魔法編：杖・火弾・精霊契約・魔術師
 import { world, system } from "@minecraft/server";
 import { liveSpells, killSpell, SPELL_ENTITY } from "./magic/SpellRegistry.js";
-import { WAND_ID, casts, startCast, releaseCast, interrupt, tickCasting, isCasting, holdingWand } from "./magic/CastingSystem.js";
+import { WAND_ID, casts, startCast, fireCast, interrupt, tickCasting, isCasting, holdingWand } from "./magic/CastingSystem.js";
 import { updateFlying } from "./magic/SpellUpdater.js";
 import { detectCollisions } from "./magic/CollisionDetector.js";
 import { onSpellContact } from "./magic/SpellInteractions.js";
 import { tickWalls, earthWallBlockComponent, cleanupStandingWalls } from "./magic/WallSystem.js";
-import { openSelector, tickSelector, isSelecting, resetPlayer, forgetLoadout } from "./magic/Loadout.js";
+import { openSelector, closeSelector, tickSelector, isSelecting, resetPlayer, forgetLoadout } from "./magic/Loadout.js";
 import { tickPower, savePower, useContractStone, forgetPlayer } from "./magic/Contracts.js";
 import { updateHud, forgetHud } from "./magic/Hud.js";
 import { tickMages, forgetMage, MAGE_ID } from "./magic/MageAI.js";
@@ -14,9 +14,10 @@ import { Fx } from "./magic/SpellEffects.js";
 import { tickMana, saveMana, forgetMana } from "./magic/Mana.js";
 import { DEBUG_BOOK_ID, openDebugBook, forgetDebug } from "./magic/Debug.js";
 
-const SWING_ANIM = "animation.na.wand.vanilla_swing";
-const SWING_TICKS = 6;
-const lastSwing = new Map(); // playerId -> tick
+const lastSwing = new Map(); // playerId -> tick（押しっぱなしで連続して振ったときの二重発動よけ）
+const SWING_GAP_TICKS = 3;
+// 「壊す」ボタン以外の腕振り（置く・使う・投げる など）では発動しない
+const NOT_ATTACK_SWINGS = new Set(["Build", "Use", "Interact", "DropItem", "ThrowItem"]);
 
 // ---- 入力 ----
 // 土壁ブロックの定期処理を登録（どの壁にも属さないものは崩れる）
@@ -24,17 +25,34 @@ system.beforeEvents.startup.subscribe(({ blockComponentRegistry }) => {
   blockComponentRegistry.registerCustomComponent("na:earth_wall", earthWallBlockComponent);
 });
 
-// 杖で「使う」を押す → 詠唱開始（魔法を選んでいる最中は除く）
-world.afterEvents.itemStartUse.subscribe((ev) => {
-  if (ev.itemStack?.typeId !== WAND_ID) return;
-  if (isSelecting(ev.source)) return;
-  startCast(ev.source);
+// 杖で「壊す」ボタン → 詠唱開始。詠唱が終わっていれば発動
+// （腕はゲーム側が振るので、一人称でも三人称でも振りが見える）
+world.afterEvents.playerSwingStart.subscribe((ev) => {
+  if (ev.heldItemStack?.typeId !== WAND_ID) return;
+  if (ev.swingSource !== undefined && NOT_ATTACK_SWINGS.has(ev.swingSource)) return;
+  const player = ev.player;
+  const now = system.currentTick;
+  if (now - (lastSwing.get(player.id) ?? -999) < SWING_GAP_TICKS) return;
+  lastSwing.set(player.id, now);
+  system.run(() => {
+    if (!player.isValid) return;
+    if (isCasting(player)) fireCast(player);
+    else startCast(player);
+  });
 });
 
-// 指を離した → 発動（撃てたら杖を振る）／詠唱が終わる前なら中断
+// 杖でブロックは壊さない（壊すボタンは魔法に使う）
+world.beforeEvents.playerBreakBlock.subscribe((ev) => {
+  if (ev.itemStack?.typeId === WAND_ID) ev.cancel = true;
+});
+
+// 杖で「置く（使う）」ボタンを押している間 → 魔法の選択。離すと決定
+world.afterEvents.itemStartUse.subscribe((ev) => {
+  if (ev.itemStack?.typeId !== WAND_ID) return;
+  openSelector(ev.source);
+});
 world.afterEvents.itemStopUse.subscribe((ev) => {
-  if (!isCasting(ev.source)) return;
-  if (releaseCast(ev.source)) swingArm(ev.source);
+  if (isSelecting(ev.source)) closeSelector(ev.source, true);
 });
 
 // 契約石：0.8秒かかげて契約（しゃがみながらで解除）
@@ -49,28 +67,6 @@ world.afterEvents.itemUse.subscribe((ev) => {
   if (ev.itemStack?.typeId !== DEBUG_BOOK_ID) return;
   openDebugBook(ev.source);
 });
-
-// バニラの腕振り（壊すボタン・叩く）を記録して、二重に振らないようにする
-// 杖を離したときの振りなどは数えない（数えると一人称で魔法の振りが出なくなる）
-const VANILLA_SWINGS = new Set(["Attack", "Mine"]);
-world.afterEvents.playerSwingStart.subscribe((ev) => {
-  if (ev.heldItemStack?.typeId !== WAND_ID) return;
-  if (ev.swingSource !== undefined && !VANILLA_SWINGS.has(ev.swingSource)) return;
-  lastSwing.set(ev.player.id, system.currentTick);
-});
-
-/** 魔法を撃った瞬間に腕を振る（バニラと同じ形の振り） */
-function swingArm(player) {
-  system.run(() => {
-    if (!player.isValid) return;
-    const last = lastSwing.get(player.id) ?? -999;
-    if (system.currentTick - last < SWING_TICKS) return; // ゲーム側がもう振っている
-    lastSwing.set(player.id, system.currentTick);
-    try {
-      player.playAnimation(SWING_ANIM, { controller: "na_wand_swing", blendOutTime: 0 });
-    } catch {}
-  });
-}
 
 // 詠唱中に被弾したら中断（プレイヤーも魔術師も）
 world.afterEvents.entityHurt.subscribe(
@@ -96,10 +92,8 @@ system.runInterval(() => {
 
   const now = system.currentTick;
   for (const player of world.getAllPlayers()) {
-    // 杖を持ってしゃがむ → 魔法の選択
-    const canSelect = player.isSneaking && !isCasting(player) && holdingWand(player);
-    if (isSelecting(player)) tickSelector(player, canSelect);
-    else if (canSelect) openSelector(player);
+    // 魔法の選択中（杖を持ち替えたら閉じる）
+    if (isSelecting(player)) tickSelector(player, holdingWand(player));
 
     tickPower(player, casts.get(player.id)?.spiritId);
     tickMana(player, casts.get(player.id)?.needsMana);

@@ -1,9 +1,10 @@
 // 詠唱・溜め・発射（草案 5, 6：CastingSystem）
 // プレイヤーも魔術師（モブ）も同じ仕組みで詠唱する
 //
-// プレイヤー：杖で「使う」を押し続ける → 詠唱 → 溜め（任意）→ 離して発動
+// プレイヤー：杖で「壊す」ボタン → 詠唱 → 詠唱が終わると構えたまま（火弾は溜まっていく）
+//             → もう一度「壊す」ボタンで発動（そのときゲーム側が腕を振る）
 // 魔術師    ：AI が詠唱を始め、決めた分だけ溜めて、標的へ撃つ
-// 詠唱が終わる前に離す／被弾する／持ち替える → 中断（使った力だけ失う）
+// 被弾する／持ち替える → 中断（使った力だけ失う）
 import { system } from "@minecraft/server";
 import { SPELLS, MEDIA, castTicks } from "./SpellData.js";
 import { createSpell, setSize, moveSpell, killSpell } from "./SpellRegistry.js";
@@ -121,20 +122,16 @@ export function startCast(caster, ai) {
   return true;
 }
 
-/** プレイヤーが指を離した。撃てたら true */
-export function releaseCast(player) {
+/** 詠唱が終わっていれば発動する（詠唱中は何もしない）。撃てたら true */
+export function fireCast(player) {
   const c = casts.get(player.id);
-  if (!c) return false;
-  if (c.phase === "cast") {
-    interrupt(player, "§7詠唱を中断した");
-    return false;
-  }
-  if (c.spell.phase === "dead") return false;
-  launch(c, player.getViewDirection()); // 発動完了時の視線
+  if (!c || c.phase === "cast" || c.spell.phase === "dead") return false;
+  if (c.def.behavior === "wall") return launchWall(c);
+  launch(c, player.getViewDirection()); // 発動時の視線
   return true;
 }
 
-/** 土壁：詠唱が終わった瞬間、見ている場所へ立てる（溜めはない） */
+/** 土壁：見ている場所へ立てる（溜めはない） */
 function launchWall(c) {
   casts.delete(c.caster.id);
   c.spell.forceMax = c.def.force;
@@ -261,16 +258,12 @@ export function tickCasting() {
         continue;
       }
       c.tick++;
-      if (c.tick >= c.castTicks && def.behavior === "wall") {
-        launchWall(c);
-        continue;
-      }
       if (c.tick >= c.castTicks) {
         c.phase = "charge";
         Fx.ready(spell.dimension, loc, def.attribute);
       }
       updateForming(c);
-    } else {
+    } else if (def.charge) {
       const goal = c.ai ? c.ai.chargeGoal : def.charge.maxTicks;
       if (c.chargeTicks < Math.min(goal, def.charge.maxTicks)) {
         const cost = c.needsMana ? def.charge.manaCost : def.charge.spiritCost;
